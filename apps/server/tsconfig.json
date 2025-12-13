@@ -9,6 +9,8 @@
     },
     "types": ["bun"],
     "jsx": "react-jsx",
-    "strictNullChecks": true
-  }
+    "strictNullChecks": true,
+    "resolveJsonModule": true
+  },
+  "include": ["src/**/*", "config.json"]
 }

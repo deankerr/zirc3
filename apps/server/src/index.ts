@@ -34,6 +34,10 @@ const app = new Elysia()
       clients.add(ws);
       console.log(`[ws] client connected (${clients.size} total)`);
 
+      // * Send network list first
+      const networks = Object.keys(config.networks).map((name) => ({ name }));
+      ws.send({ type: "networks", data: networks });
+
       // * Replay buffered messages to new client
       for (const message of eventBuffer.getAll()) {
         ws.send(message);
@@ -49,8 +53,8 @@ const app = new Elysia()
     console.log(`Server is running on http://localhost:${PORT}`);
   });
 
-function broadcast(type: string, data: IRCMessage) {
-  const message = { type, data };
+function broadcast(data: IRCMessage) {
+  const message = { type: "irc" as const, data };
   eventBuffer.push(message);
   for (const ws of clients) {
     ws.send(message);
@@ -58,11 +62,17 @@ function broadcast(type: string, data: IRCMessage) {
 }
 
 // * Create IRC clients for each network
-for (const [network, options] of Object.entries(config.networks) as [
-  string,
-  Parameters<typeof createIRCClient>[0],
-][]) {
+for (const [network, networkConfig] of Object.entries(config.networks)) {
+  const { channels, ...options } = networkConfig;
   const client = createIRCClient(options);
+
+  client.on("registered", () => {
+    if (channels) {
+      for (const channel of channels) {
+        client.join(channel);
+      }
+    }
+  });
 
   client.connection.on("message", (message) => {
     if (["PING", "PONG"].includes(message.command)) {
@@ -71,7 +81,7 @@ for (const [network, options] of Object.entries(config.networks) as [
 
     const msg = parseMessage(message, network);
     console.log(`[${network}]`, msg);
-    broadcast("irc", msg);
+    broadcast(msg);
   });
 
   client.connect();

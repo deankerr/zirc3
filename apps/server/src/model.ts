@@ -12,7 +12,11 @@ export const IRCMessage = t.Object({
   numeric: t.Optional(t.String()),
 });
 
-export const EventMessage = t.Object({
-  type: t.String(),
-  data: IRCMessage,
+export const NetworkInfo = t.Object({
+  name: t.String(),
 });
+
+export const EventMessage = t.Union([
+  t.Object({ type: t.Literal("irc"), data: IRCMessage }),
+  t.Object({ type: t.Literal("networks"), data: t.Array(NetworkInfo) }),
+]);
