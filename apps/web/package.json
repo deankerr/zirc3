@@ -3,22 +3,23 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite --port 3001",
+    "dev": "vite --port 3402",
     "build": "vite build",
     "serve": "vite preview",
     "test": "vitest run"
   },
   "dependencies": {
+    "@elysiajs/eden": "^1.4.5",
+    "@libsql/client": "catalog:",
     "@tailwindcss/vite": "^4.1.13",
     "@tanstack/router-plugin": "^1.131.44",
     "@tanstack/solid-form": "^1.20.0",
+    "@tanstack/solid-query": "^5.87.4",
     "@tanstack/solid-router": "^1.131.44",
+    "libsql": "catalog:",
     "lucide-solid": "^0.544.0",
     "solid-js": "^1.9.9",
-    "tailwindcss": "^4.1.13",
-    "@tanstack/solid-query": "^5.87.4",
-    "@libsql/client": "catalog:",
-    "libsql": "catalog:"
+    "tailwindcss": "^4.1.13"
   },
   "devDependencies": {
     "typescript": "^5.9.2",

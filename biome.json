@@ -1,5 +1,8 @@
 {
   "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "javascript": {
+    "globals": ["Bun"]
+  },
   "files": {
     "ignoreUnknown": false,
     "includes": [
@@ -22,8 +25,13 @@
       "!**/.source"
     ]
   },
-  "extends": [
-    "ultracite/core",
-    "ultracite/solid"
-  ]
+  "extends": ["ultracite/core", "ultracite/solid"],
+
+  "linter": {
+    "rules": {
+      "style": {
+        "useConsistentTypeDefinitions": "off"
+      }
+    }
+  }
 }

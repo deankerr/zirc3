@@ -1,2 +1,9 @@
 [install]
 linker = "isolated"
+minimumReleaseAge = 259200
+
+[console]
+depth = 6
+
+[run]
+bun = true

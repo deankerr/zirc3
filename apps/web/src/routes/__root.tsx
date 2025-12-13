@@ -1,20 +1,19 @@
+import { createRootRouteWithContext, Outlet } from "@tanstack/solid-router";
 import Header from "@/components/header";
-import { Outlet, createRootRouteWithContext } from "@tanstack/solid-router";
-import { TanStackRouterDevtools } from "@tanstack/solid-router-devtools";
-export interface RouterContext {}
+export type RouterContext = {};
 
 export const Route = createRootRouteWithContext<RouterContext>()({
-	component: RootComponent,
+  component: RootComponent,
 });
 
 function RootComponent() {
-	return (
-		<>
-			<div class="grid grid-rows-[auto_1fr] h-svh">
-				<Header />
-				<Outlet />
-			</div>
-			<TanStackRouterDevtools />
-		</>
-	);
+  return (
+    <>
+      <div class="grid h-svh grid-rows-[auto_1fr] overflow-hidden">
+        <Header />
+        <Outlet />
+      </div>
+      {/* <TanStackRouterDevtools /> */}
+    </>
+  );
 }

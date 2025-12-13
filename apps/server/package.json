@@ -6,19 +6,21 @@
     "build": "tsdown",
     "check-types": "tsc -b",
     "compile": "bun build --compile --minify --sourcemap --bytecode ./src/index.ts --outfile server",
-    "dev": "bun run --hot src/index.ts",
+    "dev": "bun run src/index.ts",
+    "dev:hot": "bun run --hot src/index.ts",
     "start": "bun run dist/index.js"
   },
   "dependencies": {
-    "elysia": "^1.3.21",
     "@elysiajs/cors": "^1.3.3",
+    "@zirc3/db": "workspace:*",
     "dotenv": "catalog:",
-    "zod": "catalog:",
-    "@zirc3/db": "workspace:*"
+    "elysia": "^1.3.21",
+    "irc-framework": "^4.14.0",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "typescript": "^5.8.2",
-    "@types/bun": "^1.2.6",
+    "@types/bun": "^1.3.4",
     "tsdown": "^0.16.5",
     "@zirc3/config": "workspace:*"
   }
