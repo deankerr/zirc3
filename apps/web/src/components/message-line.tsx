@@ -17,24 +17,6 @@ export function formatTime(timestamp: number) {
   });
 }
 
-function parseTarget(command: string, params: string[]) {
-  if (params.length === 0) {
-    return;
-  }
-  switch (command) {
-    case "PRIVMSG":
-    case "NOTICE":
-    case "JOIN":
-    case "PART":
-    case "MODE":
-    case "TOPIC":
-    case "KICK":
-      return params[0];
-    default:
-      return;
-  }
-}
-
 function getCommandColor(command: string, numeric?: string) {
   if (numeric) {
     return "text-neutral-500";
@@ -70,16 +52,15 @@ export function MessageLine(props: { message: IRCMessage }) {
   const msg = props.message;
   const commandColor = getCommandColor(msg.command, msg.numeric);
   const nick = parseNick(msg.source);
-  const target = parseTarget(msg.command, msg.params);
   const isNumeric = !!msg.numeric;
   const command = msg.command;
-  const params = (target ? msg.params.slice(1) : msg.params).join(" ");
+  const params = (msg.target ? msg.params.slice(1) : msg.params).join(" ");
 
   return (
     <div class="group whitespace-pre-wrap px-3 py-0.5 font-mono text-sm hover:bg-neutral-900/50">
       <span class="text-neutral-600">{pad(formatTime(msg.timestamp), 10)}</span>
       <span class={commandColor}>{pad(command, 14)}</span>
-      <span class="text-blue-400">{pad(target ?? "", 16)}</span>
+      <span class="text-blue-400">{pad(msg.target ?? "", 16)}</span>
       <span class="text-orange-400">{pad(nick ?? msg.source ?? "", 16)}</span>
       <span class={isNumeric ? "text-neutral-500" : "text-neutral-300"}>
         {params}

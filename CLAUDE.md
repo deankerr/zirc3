@@ -2,7 +2,9 @@
 
 This is essentially a next-generation version of The Lounge IRC - a multi-tenant IRC bouncer Elysia server, which is accessed via a SolidJS web app.
 
-Currently we only handle single user with no auth, while implementing the core functionality.
+- Currently we only handle single user with no auth, while implementing the core functionality.
+- IRC events will eventually be persisted to db. We avoid using irc-framework's opinionated event helpers as they're not suited to this use case.
+- bun's UUIDv7 implementation is monotonic, so we can call it from anywhere.
 
 ## Philosophy
 

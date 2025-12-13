@@ -10,6 +10,7 @@ export const IRCMessage = t.Object({
   source: t.String(),
   tags: t.Record(t.String(), t.String()),
   numeric: t.Optional(t.String()),
+  target: t.Optional(t.String()),
 });
 
 export const NetworkInfo = t.Object({
