@@ -60,16 +60,25 @@ const app = new Elysia()
       console.log(`[ws] client connected (${wsClients.size} total)`);
 
       // * Send network list first
-      const networks = clientManager
-        .getNetworkNames()
-        .map((name) => ({ name }));
+      const networks = [...clientManager.clients.keys()].map((name) => ({
+        name,
+      }));
       ws.send({ type: "networks", data: networks });
 
-      // * Replay buffered events to new client
-      for (const event of clientManager.getSystemEvents()) {
+      // * Replay buffered system events
+      for (const event of clientManager.systemBuffer.getAll()) {
         ws.send({ type: "system", data: event });
       }
-      for (const message of clientManager.getAllMessages()) {
+
+      // * Replay buffered messages (sorted by timestamp across all buffers)
+      const messages: IRCMessage[] = [];
+      for (const client of clientManager.clients.values()) {
+        for (const buffer of client.buffers.values()) {
+          messages.push(...buffer.getAll());
+        }
+      }
+      messages.sort((a, b) => a.timestamp - b.timestamp);
+      for (const message of messages) {
         ws.send({ type: "irc", data: message });
       }
     },

@@ -7,10 +7,8 @@ import type { IRCCommand, IRCMessage, SystemEvent } from "./types";
 const SYSTEM_BUFFER_SIZE = 100;
 
 export class ClientManager {
-  private readonly clients = new Map<string, IRCClient>();
-  private readonly systemBuffer = new RingBuffer<SystemEvent>(
-    SYSTEM_BUFFER_SIZE
-  );
+  readonly clients = new Map<string, IRCClient>();
+  readonly systemBuffer = new RingBuffer<SystemEvent>(SYSTEM_BUFFER_SIZE);
   private readonly messageListeners: Array<(message: IRCMessage) => void> = [];
   private readonly systemListeners: Array<(event: SystemEvent) => void> = [];
 
@@ -45,33 +43,6 @@ export class ClientManager {
       client.quit("Disconnecting");
       this.clients.delete(network);
     }
-  }
-
-  getClient(network: string): IRCClient | undefined {
-    return this.clients.get(network);
-  }
-
-  getAllClients(): IRCClient[] {
-    return Array.from(this.clients.values());
-  }
-
-  getNetworkNames(): string[] {
-    return Array.from(this.clients.keys());
-  }
-
-  getSystemEvents(): SystemEvent[] {
-    return this.systemBuffer.getAll();
-  }
-
-  getAllMessages(): IRCMessage[] {
-    const messages: IRCMessage[] = [];
-    for (const client of this.clients.values()) {
-      for (const buffer of client.getAllBuffers()) {
-        messages.push(...buffer.getAll());
-      }
-    }
-    // * sort by timestamp (UUIDv7 is monotonic within same process, but not across buffers)
-    return messages.sort((a, b) => a.timestamp - b.timestamp);
   }
 
   onMessage(listener: (message: IRCMessage) => void) {

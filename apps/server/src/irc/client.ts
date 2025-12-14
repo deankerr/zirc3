@@ -1,18 +1,21 @@
 import IRC from "irc-framework";
+import { RingBuffer } from "../ring-buffer";
+import type { IRCMessage } from "../types";
 import { parseMessage } from "./message";
-import { TargetBuffer } from "./target-buffer";
 import type {
   ConnectionEvent,
   ConnectionHandler,
   MessageHandler,
 } from "./types";
 
+const DEFAULT_BUFFER_SIZE = 500;
+
 export class IRCClient {
   readonly irc: IRC.Client;
   readonly network: string;
   readonly channels: string[];
+  readonly buffers = new Map<string, RingBuffer<IRCMessage>>();
 
-  private readonly buffers = new Map<string, TargetBuffer>();
   private readonly onMessage: MessageHandler;
   private readonly onConnection?: ConnectionHandler;
 
@@ -86,22 +89,14 @@ export class IRCClient {
     this.onConnection?.({ client: this, event });
   }
 
-  getBuffer(target: string): TargetBuffer | undefined {
-    return this.buffers.get(target.toLowerCase());
-  }
-
-  getOrCreateBuffer(target: string): TargetBuffer {
+  private getOrCreateBuffer(target: string) {
     const key = target.toLowerCase();
     let buffer = this.buffers.get(key);
     if (!buffer) {
-      buffer = new TargetBuffer(target);
+      buffer = new RingBuffer<IRCMessage>(DEFAULT_BUFFER_SIZE);
       this.buffers.set(key, buffer);
     }
     return buffer;
-  }
-
-  getAllBuffers(): TargetBuffer[] {
-    return Array.from(this.buffers.values());
   }
 
   connect() {
