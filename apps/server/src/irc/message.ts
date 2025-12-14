@@ -15,55 +15,42 @@ const TARGET_COMMANDS = new Set([
   "ACTION",
 ]);
 
-function parseTarget(command: string, params: string[]) {
-  if (params.length === 0) {
-    return;
-  }
-  if (TARGET_COMMANDS.has(command)) {
-    return params[0];
-  }
-}
-
 export function parseMessage(
   input: IRC.IrcMessage,
   network: string
 ): IRCMessage {
   const raw = input.toJson();
 
-  const id = Bun.randomUUIDv7();
-  const timestamp = Date.now();
+  const msg: IRCMessage = {
+    id: Bun.randomUUIDv7(),
+    timestamp: Date.now(),
+    network,
+    ...raw,
+  };
 
   // * detect CTCP ACTION (e.g. /me commands)
   // format: PRIVMSG #channel :\x01ACTION does something\x01
-  const text = raw.params?.[1];
+  const text = msg.params?.[1];
   if (
-    raw.command === "PRIVMSG" &&
-    raw.params?.[0] &&
+    msg.command === "PRIVMSG" &&
+    msg.params?.[0] &&
     text?.startsWith(`${CTCP_MARKER}ACTION `)
   ) {
-    const actionText = text.slice(8, -1); // remove "\x01ACTION " prefix and trailing "\x01"
-    const command = "ACTION";
-    return {
-      id,
-      timestamp,
-      network,
-      ...raw,
-      command,
-      params: [raw.params[0], actionText],
-      target: parseTarget(command, raw.params),
-    };
+    msg.command = "ACTION";
+    msg.params = [msg.params[0], text.slice(8, -1)]; // remove "\x01ACTION " prefix and trailing "\x01"
   }
 
-  const name = numerics[raw.command];
-  const command = name ?? raw.command;
+  // * map numeric to human-readable name
+  const name = numerics[msg.command];
+  if (name) {
+    msg.numeric = msg.command;
+    msg.command = name;
+  }
 
-  return {
-    id,
-    timestamp,
-    network,
-    ...raw,
-    command,
-    numeric: name ? raw.command : undefined,
-    target: parseTarget(command, raw.params),
-  };
+  // * extract target from params
+  if (msg.params.length > 0 && TARGET_COMMANDS.has(msg.command)) {
+    msg.target = msg.params.shift();
+  }
+
+  return msg;
 }

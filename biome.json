@@ -31,6 +31,9 @@
     "rules": {
       "style": {
         "useConsistentTypeDefinitions": "off"
+      },
+      "nursery": {
+        "noShadow": "off"
       }
     }
   }

@@ -8,8 +8,12 @@ This is essentially a next-generation version of The Lounge IRC - a multi-tenant
 
 ## Philosophy
 
-Using class definitions in the server app is appropriate for many of its components.
+- Many components of the server app qualify as reasonable cases for using class definitions.
 
 ## Scripts
 
-`bun check-types`
+- `bun check-types` This is a fullstack app, never try to partially typecheck the individual workspaces as you may have caused issues downstream.
+
+## Coding
+
+- The linter will aggressively remove unused code, such as imports. If you import something, make sure you're using it in the same edit.

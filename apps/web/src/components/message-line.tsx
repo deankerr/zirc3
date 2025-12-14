@@ -54,7 +54,8 @@ export function MessageLine(props: { message: IRCMessage }) {
   const nick = parseNick(msg.source);
   const isNumeric = !!msg.numeric;
   const command = msg.command;
-  const params = (msg.target ? msg.params.slice(1) : msg.params).join(" ");
+  // * target is already extracted from params on the server
+  const params = msg.params.join(" ");
 
   return (
     <div class="group whitespace-pre-wrap px-3 py-0.5 font-mono text-sm hover:bg-neutral-900/50">

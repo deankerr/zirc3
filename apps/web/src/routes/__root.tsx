@@ -2,28 +2,54 @@ import {
   createRootRouteWithContext,
   Link,
   Outlet,
-  useNavigate,
 } from "@tanstack/solid-router";
 import {
   type Accessor,
   createContext,
-  createEffect,
   createSignal,
   For,
   type JSX,
-  on,
   onCleanup,
   onMount,
   useContext,
 } from "solid-js";
-import { api, type IRCMessage, type NetworkInfo } from "@/api";
+import {
+  api,
+  type IRCMessage,
+  type NetworkInfo,
+  type SystemEvent,
+} from "@/api";
 import Header from "@/components/header";
+
+const HTTP_REGEX = /^http/;
+
+// * Initial system message with logo
+const LOGO_MESSAGE: SystemEvent = {
+  id: "logo",
+  timestamp: Date.now(),
+  network: "zirc",
+  event: { type: "registered" },
+};
+
+function createLocalEvent(
+  event: SystemEvent["event"],
+  network = "client"
+): SystemEvent {
+  return {
+    id: crypto.randomUUID(),
+    timestamp: Date.now(),
+    network,
+    event,
+  };
+}
 
 // * App context for sharing state across routes
 type AppContextType = {
   messages: Accessor<IRCMessage[]>;
+  systemEvents: Accessor<SystemEvent[]>;
   networks: Accessor<NetworkInfo[]>;
   connected: Accessor<boolean>;
+  sendCommand: (network: string, command: string, args: string[]) => void;
 };
 
 const AppContext = createContext<AppContextType>();
@@ -38,29 +64,44 @@ export function useApp() {
 
 function AppProvider(props: { children: JSX.Element }) {
   const [messages, setMessages] = createSignal<IRCMessage[]>([]);
+  const [systemEvents, setSystemEvents] = createSignal<SystemEvent[]>([
+    LOGO_MESSAGE,
+  ]);
   const [networks, setNetworks] = createSignal<NetworkInfo[]>([]);
   const [connected, setConnected] = createSignal(false);
-  const navigate = useNavigate();
 
   let ws: ReturnType<typeof api.events.subscribe> | undefined;
 
+  function addSystemEvent(event: SystemEvent["event"], network = "client") {
+    setSystemEvents((prev) => {
+      const updated = [...prev, createLocalEvent(event, network)];
+      if (updated.length > 100) {
+        return updated.slice(-100);
+      }
+      return updated;
+    });
+  }
+
   onMount(() => {
-    console.log("[ws] connecting...");
+    const serverUrl = import.meta.env.VITE_SERVER_URL as string;
+    const wsUrl = `${serverUrl.replace(HTTP_REGEX, "ws")}/events`;
+    addSystemEvent({ type: "connecting", address: wsUrl });
     ws = api.events.subscribe();
 
     ws.on("open", () => {
-      console.log("[ws] connected");
       setConnected(true);
+      addSystemEvent({ type: "registered" });
     });
 
     ws.on("close", () => {
-      console.log("[ws] disconnected");
       setConnected(false);
+      addSystemEvent({ type: "close" });
     });
 
     ws.on("error", (err) => {
       console.error("[ws] error", err);
       setConnected(false);
+      addSystemEvent({ type: "socket_error", error: String(err) });
     });
 
     ws.subscribe(({ data: msg }) => {
@@ -78,25 +119,33 @@ function AppProvider(props: { children: JSX.Element }) {
           }
           return updated;
         });
+        return;
+      }
+
+      if (msg.type === "system") {
+        setSystemEvents((prev) => {
+          const updated = [...prev, msg.data];
+          if (updated.length > 100) {
+            return updated.slice(-100);
+          }
+          return updated;
+        });
       }
     });
   });
-
-  // * Navigate to first network when networks are loaded and we're at root
-  createEffect(
-    on(networks, (nets) => {
-      if (nets.length > 0 && window.location.pathname === "/") {
-        navigate({ to: "/$network", params: { network: nets[0].name } });
-      }
-    })
-  );
 
   onCleanup(() => {
     ws?.close();
   });
 
+  function sendCommand(network: string, command: string, args: string[]) {
+    ws?.send({ type: "irc", data: { network, command, args } });
+  }
+
   return (
-    <AppContext.Provider value={{ messages, networks, connected }}>
+    <AppContext.Provider
+      value={{ messages, systemEvents, networks, connected, sendCommand }}
+    >
       {props.children}
     </AppContext.Provider>
   );
@@ -126,6 +175,16 @@ function NetworkTabs() {
 
   return (
     <div class="flex items-center border-neutral-800 border-b bg-neutral-900/50 px-2">
+      <Link
+        activeProps={{
+          class:
+            "border-amber-500 bg-neutral-800/50 text-amber-400 hover:text-amber-300",
+        }}
+        class="border-transparent border-b-2 px-3 py-2 text-neutral-400 text-sm transition-colors hover:bg-neutral-800/30 hover:text-neutral-200"
+        to="/"
+      >
+        system
+      </Link>
       <For each={networks()}>
         {(network) => (
           <Link
