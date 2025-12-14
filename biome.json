@@ -30,7 +30,8 @@
   "linter": {
     "rules": {
       "style": {
-        "useConsistentTypeDefinitions": "off"
+        "useConsistentTypeDefinitions": "off",
+        "useBlockStatements": "off"
       },
       "nursery": {
         "noShadow": "off"

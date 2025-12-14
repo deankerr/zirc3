@@ -1,6 +1,8 @@
+import { mkdirSync } from "node:fs";
 import IRC from "irc-framework";
 import { RingBuffer } from "../ring-buffer";
 import type { IRCMessage } from "../types";
+import { IRCChannel } from "./channel";
 import { parseMessage } from "./message";
 import type {
   ConnectionEvent,
@@ -9,25 +11,32 @@ import type {
 } from "./types";
 
 const DEFAULT_BUFFER_SIZE = 500;
+const LOG_DIR = "logs";
 
 export class IRCClient {
   readonly irc: IRC.Client;
   readonly network: string;
-  readonly channels: string[];
+  readonly autoJoin: string[];
   readonly buffers = new Map<string, RingBuffer<IRCMessage>>();
+  readonly channels = new Map<string, IRCChannel>();
 
   private readonly onMessage: MessageHandler;
   private readonly onConnection?: ConnectionHandler;
+  private readonly quitMessage?: string;
+  private logWriter: ReturnType<ReturnType<typeof Bun.file>["writer"]> | null =
+    null;
 
   constructor(args: {
     network: string;
     options: IRC.ClientOptions;
-    channels?: string[];
+    autoJoin?: string[];
+    quitMessage?: string;
     onMessage: MessageHandler;
     onConnection?: ConnectionHandler;
   }) {
     this.network = args.network;
-    this.channels = args.channels ?? [];
+    this.autoJoin = args.autoJoin ?? [];
+    this.quitMessage = args.quitMessage;
     this.onMessage = args.onMessage;
     this.onConnection = args.onConnection;
 
@@ -36,16 +45,136 @@ export class IRCClient {
       version: "zirc3",
     });
 
+    this.initLogFile();
     this.setupEventHandlers();
   }
 
+  private initLogFile() {
+    mkdirSync(LOG_DIR, { recursive: true });
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const filename = `${LOG_DIR}/${this.network}_${timestamp}.log`;
+    this.logWriter = Bun.file(filename).writer();
+  }
+
   private setupEventHandlers() {
-    // * registered event - auto-join channels
+    // * registered event - auto-join channels and send user info
     this.irc.on("registered", () => {
-      for (const channel of this.channels) {
+      for (const channel of this.autoJoin) {
         this.irc.join(channel);
       }
-      this.emitConnection({ type: "registered" });
+      this.emitConnection({ type: "registered", user: this.getUserInfo() });
+    });
+
+    // * user update events
+    this.irc.on("nick", (event) => {
+      // update nick in all channels
+      for (const [key, channel] of this.channels) {
+        if (channel.handleNick(event.nick, event.new_nick)) {
+          this.emitChannelUpdate(key);
+        }
+      }
+      this.emitConnection({ type: "user_updated", user: this.getUserInfo() });
+    });
+
+    this.irc.on("mode", (event) => {
+      // channel mode change
+      if (event.target.startsWith("#")) {
+        const channel = this.channels.get(event.target.toLowerCase());
+        if (channel) {
+          channel.handleMode(event.modes, this.getPrefixModes());
+          this.emitChannelUpdate(event.target);
+        }
+        return;
+      }
+      // user mode change
+      if (event.target === this.irc.user.nick) {
+        this.emitConnection({ type: "user_updated", user: this.getUserInfo() });
+      }
+    });
+
+    this.irc.on("wholist", () => {
+      this.emitConnection({ type: "user_updated", user: this.getUserInfo() });
+    });
+
+    this.irc.on("away", () => {
+      this.emitConnection({ type: "user_updated", user: this.getUserInfo() });
+    });
+
+    this.irc.on("back", () => {
+      this.emitConnection({ type: "user_updated", user: this.getUserInfo() });
+    });
+
+    // * channel state events
+    this.irc.on("join", (event) => {
+      const isSelf = event.nick === this.irc.user.nick;
+      const channel = this.getOrCreateChannel(event.channel);
+      channel.handleJoin(event, isSelf);
+      this.emitChannelUpdate(event.channel);
+    });
+
+    this.irc.on("part", (event) => {
+      const isSelf = event.nick === this.irc.user.nick;
+      const channel = this.channels.get(event.channel.toLowerCase());
+      if (channel) {
+        channel.handlePart(event.nick, isSelf);
+        this.emitChannelUpdate(event.channel);
+      }
+    });
+
+    this.irc.on("kick", (event) => {
+      const { channel: channelName, kicked } = event;
+      if (!channelName) {
+        return;
+      }
+      if (!kicked) {
+        return;
+      }
+      const isSelf = kicked === this.irc.user.nick;
+      const channel = this.channels.get(channelName.toLowerCase());
+      if (channel) {
+        channel.handleKick(kicked, isSelf);
+        this.emitChannelUpdate(channelName);
+      }
+    });
+
+    this.irc.on("quit", (event) => {
+      for (const [key, channel] of this.channels) {
+        if (channel.handleQuit(event.nick)) {
+          this.emitChannelUpdate(key);
+        }
+      }
+    });
+
+    this.irc.on("userlist", (event) => {
+      const channel = this.channels.get(event.channel.toLowerCase());
+      if (channel) {
+        channel.handleUserlist(event.users);
+        this.emitChannelUpdate(event.channel);
+      }
+    });
+
+    this.irc.on("topic", (event) => {
+      const channel = this.channels.get(event.channel.toLowerCase());
+      if (channel) {
+        channel.handleTopic(event.topic, event.nick, event.time);
+        this.emitChannelUpdate(event.channel);
+      }
+    });
+
+    this.irc.on("topicsetby", (event) => {
+      const channel = this.channels.get(event.channel.toLowerCase());
+      if (channel) {
+        channel.handleTopicSetBy(event.nick, event.when);
+        this.emitChannelUpdate(event.channel);
+      }
+    });
+
+    this.irc.on("channel info", (event) => {
+      const channel = this.channels.get(event.channel.toLowerCase());
+      if (channel) {
+        channel.handleChannelInfo(event.modes);
+        this.emitChannelUpdate(event.channel);
+      }
     });
 
     // * message handler - parse and notify
@@ -53,6 +182,9 @@ export class IRCClient {
       if (["PING", "PONG"].includes(rawMessage.command)) {
         return;
       }
+
+      const rawLine = rawMessage.to1459();
+      this.logWriter?.write(`${rawLine}\n`);
 
       const message = parseMessage(rawMessage, this.network);
 
@@ -85,6 +217,17 @@ export class IRCClient {
     });
   }
 
+  private getUserInfo() {
+    const user = this.irc.user;
+    return {
+      nick: user.nick,
+      username: user.username,
+      host: user.host,
+      away: user.away,
+      modes: [...user.modes],
+    };
+  }
+
   private emitConnection(event: ConnectionEvent) {
     this.onConnection?.({ client: this, event });
   }
@@ -99,12 +242,36 @@ export class IRCClient {
     return buffer;
   }
 
+  private getOrCreateChannel(name: string) {
+    const key = name.toLowerCase();
+    let channel = this.channels.get(key);
+    if (!channel) {
+      channel = new IRCChannel(name, this.irc.caseCompare.bind(this.irc));
+      this.channels.set(key, channel);
+    }
+    return channel;
+  }
+
+  private emitChannelUpdate(name: string) {
+    const channel = this.channels.get(name.toLowerCase());
+    if (channel) {
+      this.emitConnection({
+        type: "channel_updated",
+        channel: channel.getState(),
+      });
+    }
+  }
+
+  private getPrefixModes(): string[] {
+    return this.irc.network.options.PREFIX?.map((p) => p.mode) ?? [];
+  }
+
   connect() {
     this.irc.connect();
   }
 
   quit(message?: string) {
-    this.irc.quit(message);
+    this.irc.quit(message ?? this.quitMessage);
   }
 
   // * Convenience methods that delegate to irc client

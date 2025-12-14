@@ -17,12 +17,13 @@ export class ClientManager {
       throw new Error(`Network "${network}" already exists`);
     }
 
-    const { channels, ...options } = config;
+    const { channels: autoJoin, quitMessage, ...options } = config;
 
     const client = new IRCClient({
       network,
       options,
-      channels,
+      autoJoin,
+      quitMessage,
       onMessage: ({ message }) => {
         this.notifyMessage(message);
       },
@@ -40,7 +41,7 @@ export class ClientManager {
   removeNetwork(network: string) {
     const client = this.clients.get(network);
     if (client) {
-      client.quit("Disconnecting");
+      client.quit();
       this.clients.delete(network);
     }
   }
@@ -93,6 +94,8 @@ export class ClientManager {
         return client.setTopic(target, text);
       case "QUIT":
         return client.quit(cmd.args.join(" ") || undefined);
+      case "CONNECT":
+        return client.connect();
       case "RAW":
         return client.irc.raw(...cmd.args);
       default:

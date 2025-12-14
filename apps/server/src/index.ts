@@ -15,7 +15,6 @@ const clientManager = new ClientManager();
 
 // * Subscribe to all IRC messages
 clientManager.onMessage((message) => {
-  console.log(`[${message.network}]`, message);
   broadcastIRC(message);
 });
 
@@ -26,6 +25,7 @@ clientManager.onSystem((event) => {
 
 // * Load networks from config
 for (const [network, networkConfig] of Object.entries(config.networks)) {
+  if (networkConfig?.enabled === false) continue;
   clientManager.addNetwork(network, networkConfig);
 }
 
@@ -51,6 +51,30 @@ const app = new Elysia()
     })
   )
   .get("/", () => "OK")
+
+  .get("/debug", () => {
+    const networks: Record<string, unknown> = {};
+    for (const [name, client] of clientManager.clients) {
+      const channels: Record<string, unknown> = {};
+      for (const [channelName, channel] of client.channels) {
+        channels[channelName] = channel.getState();
+      }
+      networks[name] = {
+        connected: client.irc.connected,
+        user: {
+          nick: client.irc.user.nick,
+          username: client.irc.user.username,
+          host: client.irc.user.host,
+          away: client.irc.user.away,
+          modes: [...client.irc.user.modes],
+        },
+        autoJoin: client.autoJoin,
+        channels,
+        bufferKeys: [...client.buffers.keys()],
+      };
+    }
+    return { networks };
+  })
 
   .ws("/events", {
     body: CommandMessage,
@@ -88,6 +112,7 @@ const app = new Elysia()
     },
     message(_ws, msg) {
       if (msg.type === "irc") {
+        console.log(`[--> ${_ws.id}]`, msg);
         clientManager.handleCommand(msg.data);
       }
     },

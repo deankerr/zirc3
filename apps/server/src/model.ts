@@ -13,6 +13,31 @@ export const IRCMessage = t.Object({
   target: t.Optional(t.String()),
 });
 
+export const UserInfo = t.Object({
+  nick: t.String(),
+  username: t.String(),
+  host: t.String(),
+  away: t.Boolean(),
+  modes: t.Array(t.String()),
+});
+
+export const ChannelMember = t.Object({
+  nick: t.String(),
+  ident: t.Optional(t.String()),
+  hostname: t.Optional(t.String()),
+  modes: t.Array(t.String()),
+});
+
+export const ChannelState = t.Object({
+  name: t.String(),
+  topic: t.String(),
+  topicSetBy: t.Optional(t.String()),
+  topicSetAt: t.Optional(t.Number()),
+  modes: t.Array(t.String()),
+  users: t.Array(ChannelMember),
+  joined: t.Boolean(),
+});
+
 export const SystemEvent = t.Object({
   id: t.String(),
   timestamp: t.Number(),
@@ -22,7 +47,9 @@ export const SystemEvent = t.Object({
       type: t.Literal("connecting"),
       address: t.Optional(t.String()),
     }),
-    t.Object({ type: t.Literal("registered") }),
+    t.Object({ type: t.Literal("registered"), user: UserInfo }),
+    t.Object({ type: t.Literal("user_updated"), user: UserInfo }),
+    t.Object({ type: t.Literal("channel_updated"), channel: ChannelState }),
     t.Object({
       type: t.Literal("socket_close"),
       error: t.Optional(t.String()),
