@@ -2,7 +2,12 @@ import type { NetworkConfig } from "./config";
 import { IRCClient } from "./irc/client";
 import type { ConnectionEvent } from "./irc/types";
 import { RingBuffer } from "./ring-buffer";
-import type { IRCCommand, IRCMessage, SystemEvent } from "./types";
+import type {
+  IRCCommand,
+  IRCMessage,
+  NetworkStateSync,
+  SystemEvent,
+} from "./types";
 
 const SYSTEM_BUFFER_SIZE = 100;
 
@@ -11,6 +16,8 @@ export class ClientManager {
   readonly systemBuffer = new RingBuffer<SystemEvent>(SYSTEM_BUFFER_SIZE);
   private readonly messageListeners: Array<(message: IRCMessage) => void> = [];
   private readonly systemListeners: Array<(event: SystemEvent) => void> = [];
+  private readonly stateListeners: Array<(state: NetworkStateSync) => void> =
+    [];
 
   addNetwork(network: string, config: NetworkConfig): IRCClient {
     if (this.clients.has(network)) {
@@ -28,7 +35,7 @@ export class ClientManager {
         this.notifyMessage(message);
       },
       onConnection: ({ client, event }) => {
-        this.handleConnection(client.network, event);
+        this.handleConnection(client, event);
       },
     });
 
@@ -62,6 +69,16 @@ export class ClientManager {
       const idx = this.systemListeners.indexOf(listener);
       if (idx !== -1) {
         this.systemListeners.splice(idx, 1);
+      }
+    };
+  }
+
+  onState(listener: (state: NetworkStateSync) => void) {
+    this.stateListeners.push(listener);
+    return () => {
+      const idx = this.stateListeners.indexOf(listener);
+      if (idx !== -1) {
+        this.stateListeners.splice(idx, 1);
       }
     };
   }
@@ -116,7 +133,22 @@ export class ClientManager {
     }
   }
 
-  private handleConnection(network: string, event: ConnectionEvent) {
+  private notifyState(state: NetworkStateSync) {
+    for (const listener of this.stateListeners) {
+      listener(state);
+    }
+  }
+
+  private handleConnection(client: IRCClient, event: ConnectionEvent) {
+    const network = client.network;
+
+    // * State change events trigger state sync broadcast
+    if (event.type === "user_updated" || event.type === "channel_updated") {
+      this.notifyState(client.getNetworkState());
+      return;
+    }
+
+    // * System events get buffered and broadcast
     const systemEvent: SystemEvent = {
       id: Bun.randomUUIDv7(),
       timestamp: Date.now(),
@@ -129,7 +161,12 @@ export class ClientManager {
 
     this.notifySystem(systemEvent);
 
-    // * log to console
+    // * Registered and close events also trigger state sync
+    if (event.type === "registered" || event.type === "close") {
+      this.notifyState(client.getNetworkState());
+    }
+
+    // * Log to console
     switch (event.type) {
       case "registered":
         console.log(`[${network}] Connected and registered`);

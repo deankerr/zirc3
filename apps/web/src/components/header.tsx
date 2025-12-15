@@ -1,24 +1,50 @@
-import { useApp } from "@/routes/__root";
+import { useStore } from "@/store";
+import type { ConnectionStatus } from "@/store/types";
 
-export default function Header() {
-  const { connected } = useApp();
+function getStatusColor(status: ConnectionStatus): string {
+  switch (status) {
+    case "connected":
+      return "var(--color-status-connected)";
+    case "connecting":
+      return "var(--color-status-connecting)";
+    default:
+      return "var(--color-status-disconnected)";
+  }
+}
+
+function getStatusText(status: ConnectionStatus): string {
+  switch (status) {
+    case "connected":
+      return "Connected";
+    case "connecting":
+      return "Connecting...";
+    default:
+      return "Disconnected";
+  }
+}
+
+export function Header() {
+  const { store } = useStore();
 
   return (
-    <div class="border-neutral-800 border-b bg-neutral-900/80">
-      <div class="flex flex-row items-center justify-between px-4 py-2">
-        <div class="flex items-center gap-3">
-          <span class="font-bold text-emerald-500">zirc</span>
-          <span class="text-neutral-600 text-xs">IRC bouncer</span>
-        </div>
-        <div class="flex items-center gap-2 text-xs">
-          <div
-            class={`h-2 w-2 rounded-full ${connected() ? "bg-emerald-500 shadow-emerald-500/50 shadow-sm" : "bg-rose-500"}`}
-          />
-          <span class={connected() ? "text-emerald-500" : "text-rose-500"}>
-            {connected() ? "Connected" : "Disconnected"}
-          </span>
-        </div>
+    <header class="flex items-center justify-between border-[var(--color-border)] border-b bg-[var(--color-bg-secondary)] px-4 py-2">
+      <div class="flex items-center gap-3">
+        <span class="font-bold text-[var(--color-accent-secondary)]">zirc</span>
       </div>
-    </div>
+      <div class="flex items-center gap-2">
+        <div
+          class="h-2 w-2 rounded-full"
+          style={{
+            "background-color": getStatusColor(store.connection.status),
+          }}
+        />
+        <span
+          class="text-sm"
+          style={{ color: getStatusColor(store.connection.status) }}
+        >
+          {getStatusText(store.connection.status)}
+        </span>
+      </div>
+    </header>
   );
 }

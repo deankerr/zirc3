@@ -38,6 +38,7 @@ export const ChannelState = t.Object({
   joined: t.Boolean(),
 });
 
+// * Historical events that get buffered and replayed
 export const SystemEvent = t.Object({
   id: t.String(),
   timestamp: t.Number(),
@@ -47,9 +48,7 @@ export const SystemEvent = t.Object({
       type: t.Literal("connecting"),
       address: t.Optional(t.String()),
     }),
-    t.Object({ type: t.Literal("registered"), user: UserInfo }),
-    t.Object({ type: t.Literal("user_updated"), user: UserInfo }),
-    t.Object({ type: t.Literal("channel_updated"), channel: ChannelState }),
+    t.Object({ type: t.Literal("registered"), nick: t.String() }),
     t.Object({
       type: t.Literal("socket_close"),
       error: t.Optional(t.String()),
@@ -64,6 +63,18 @@ export const SystemEvent = t.Object({
   ]),
 });
 
+// * Live state sync - sent on connect and when state changes
+export const NetworkStateSync = t.Object({
+  name: t.String(),
+  status: t.Union([
+    t.Literal("connecting"),
+    t.Literal("connected"),
+    t.Literal("disconnected"),
+  ]),
+  user: t.Optional(UserInfo),
+  channels: t.Record(t.String(), ChannelState),
+});
+
 export const NetworkInfo = t.Object({
   name: t.String(),
 });
@@ -72,6 +83,7 @@ export const EventMessage = t.Union([
   t.Object({ type: t.Literal("irc"), data: IRCMessage }),
   t.Object({ type: t.Literal("system"), data: SystemEvent }),
   t.Object({ type: t.Literal("networks"), data: t.Array(NetworkInfo) }),
+  t.Object({ type: t.Literal("state"), data: NetworkStateSync }),
 ]);
 
 export const IRCCommand = t.Object({

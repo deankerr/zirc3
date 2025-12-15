@@ -7,6 +7,7 @@ export type {
   EventMessage,
   IRCMessage,
   NetworkInfo,
+  NetworkStateSync,
   SystemEvent,
   UserInfo,
 } from "@zirc3/server/types";

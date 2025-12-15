@@ -25,21 +25,28 @@ export type ChannelState = {
   joined: boolean;
 };
 
-export type ConnectionEvent =
-  | { type: "registered"; user: UserInfo }
-  | { type: "user_updated"; user: UserInfo }
-  | { type: "channel_updated"; channel: ChannelState }
+// * Events that become historical system messages (buffered)
+export type SystemConnectionEvent =
+  | { type: "connecting"; address?: string }
+  | { type: "registered"; nick: string }
   | { type: "socket_close"; error?: string }
   | { type: "socket_error"; error: Error | string }
   | { type: "reconnecting"; attempt: number; wait: number }
   | { type: "close" };
 
-export type MessageHandler = (args: {
-  client: { network: string };
+// * Events that trigger state sync (live only, not buffered)
+export type StateChangeEvent =
+  | { type: "user_updated"; user: UserInfo }
+  | { type: "channel_updated"; channel: ChannelState };
+
+export type ConnectionEvent = SystemConnectionEvent | StateChangeEvent;
+
+export type MessageHandler<TClient = { network: string }> = (args: {
+  client: TClient;
   message: IRCMessage;
 }) => void;
 
-export type ConnectionHandler = (args: {
-  client: { network: string };
+export type ConnectionHandler<TClient = { network: string }> = (args: {
+  client: TClient;
   event: ConnectionEvent;
 }) => void;

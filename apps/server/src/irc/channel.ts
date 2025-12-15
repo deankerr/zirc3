@@ -101,10 +101,11 @@ export class IRCChannel {
     }
   }
 
-  handleTopicSetBy(nick: string, when?: number) {
+  handleTopicSetBy(nick: string, when?: string) {
     this.topicSetBy = nick;
     if (when) {
-      this.topicSetAt = when;
+      // * IRC sends Unix timestamp in seconds as string, convert to ms
+      this.topicSetAt = Number.parseInt(when, 10) * 1000;
     }
   }
 

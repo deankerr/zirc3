@@ -1,216 +1,128 @@
 import { createFileRoute } from "@tanstack/solid-router";
-import {
-  createEffect,
-  createMemo,
-  createSignal,
-  For,
-  on,
-  Show,
-} from "solid-js";
-import type { ChannelMember, IRCMessage } from "@/api";
-import { CommandInput } from "@/components/command-input";
-import { MessageLine } from "@/components/message-line";
-import { useApp } from "./__root";
+import { createEffect, createMemo, createSignal } from "solid-js";
+import { api } from "@/api";
+import { Buffer } from "@/components/buffer";
+import { BufferTabs } from "@/components/buffer-tabs";
+import { useStore } from "@/store";
 
 export const Route = createFileRoute("/$network")({
   component: NetworkView,
 });
 
-const SERVER_BUFFER = "*server";
-
-// * Get unique buffer targets from messages
-function getBufferTargets(messages: IRCMessage[]) {
-  const targets = new Set<string>();
-  let hasServerMessages = false;
-  for (const msg of messages) {
-    if (msg.target) {
-      targets.add(msg.target);
-    } else {
-      hasServerMessages = true;
-    }
-  }
-  const sorted = [...targets].sort((a, b) => {
-    // * Channels first (start with # or &), then nicks
-    const aIsChannel = a.startsWith("#") || a.startsWith("&");
-    const bIsChannel = b.startsWith("#") || b.startsWith("&");
-    if (aIsChannel && !bIsChannel) return -1;
-    if (!aIsChannel && bIsChannel) return 1;
-    return a.localeCompare(b);
-  });
-  // * Server buffer always first if there are server messages
-  if (hasServerMessages) {
-    return [SERVER_BUFFER, ...sorted];
-  }
-  return sorted;
-}
-
-// * Check if a target is a channel
-function isChannel(target: string) {
-  return target.startsWith("#") || target.startsWith("&");
-}
-
-// * Get mode prefix for display (@ for op, + for voice, etc.)
-function getModePrefix(modes: string[]) {
-  if (modes.includes("o")) return "@";
-  if (modes.includes("v")) return "+";
-  return "";
-}
-
-// * Get sort priority for channel member (lower = higher priority)
-function getMemberSortPriority(modes: string[]) {
-  if (modes.includes("o")) return 0;
-  if (modes.includes("v")) return 1;
+function getBufferSortKey(type: string): number {
+  if (type === "server") return 0;
+  if (type === "channel") return 1;
   return 2;
 }
 
 function NetworkView() {
   const params = Route.useParams();
-  const { messages, channels, sendCommand } = useApp();
-  const [activeBuffer, setActiveBuffer] = createSignal<string | null>(null);
+  const { store } = useStore();
+  const [activeBufferId, setActiveBufferId] = createSignal<string | null>(null);
 
-  // biome-ignore lint/suspicious/noUnassignedVariables: solid ref
-  let bufferRef: HTMLDivElement | undefined;
+  // * Get buffers for this network, sorted: server first, then channels, then queries
+  const networkBuffers = createMemo(() => {
+    const network = params().network;
+    return Object.values(store.buffers)
+      .filter((b) => b.network === network)
+      .sort((a, b) => {
+        const aKey = getBufferSortKey(a.type);
+        const bKey = getBufferSortKey(b.type);
+        if (aKey !== bKey) return aKey - bKey;
+        return (a.target ?? "").localeCompare(b.target ?? "");
+      });
+  });
 
-  // * Filter messages for this network
-  const networkMessages = createMemo(() =>
-    messages().filter((m) => m.network === params().network)
+  // * Buffer IDs for tabs (show target for display)
+  const bufferIds = createMemo(() =>
+    networkBuffers().map((b) => b.target ?? b.id)
   );
 
-  // * Get buffer targets from messages
-  const bufferTargets = createMemo(() => getBufferTargets(networkMessages()));
-
-  // * Auto-select first buffer when targets change
+  // * Auto-select first buffer when network changes or buffers arrive
   createEffect(() => {
-    const targets = bufferTargets();
-    if (targets.length === 0) return;
-    const current = activeBuffer();
-    const hasValidBuffer = current !== null && targets.includes(current);
-    if (!hasValidBuffer) {
-      setActiveBuffer(targets[0]);
+    const buffers = networkBuffers();
+    if (buffers.length === 0) {
+      setActiveBufferId(null);
+      return;
+    }
+    const current = activeBufferId();
+    const hasValid = current && buffers.some((b) => b.id === current);
+    if (!hasValid) {
+      setActiveBufferId(buffers[0].id);
     }
   });
 
-  // * Filter messages for active buffer
-  const bufferMessages = createMemo(() => {
+  // * Active buffer data
+  const activeBuffer = createMemo(() => {
+    const id = activeBufferId();
+    if (!id) return null;
+    return store.buffers[id] ?? null;
+  });
+
+  // * Sidebar data for channels
+  const sidebarData = createMemo(() => {
     const buffer = activeBuffer();
-    if (!buffer) return networkMessages();
-    if (buffer === SERVER_BUFFER) {
-      return networkMessages().filter((m) => !m.target);
+    if (!buffer || buffer.type !== "channel") return;
+    const network = store.networks[params().network];
+    if (!network) return;
+    const key = (buffer.target ?? "").toLowerCase();
+    const channel = network.channels[key];
+    if (!channel?.users || channel.users.length === 0) return;
+    return { users: channel.users };
+  });
+
+  // * Handle buffer selection from tabs
+  function handleSelectBuffer(target: string) {
+    const buffer = networkBuffers().find((b) => (b.target ?? b.id) === target);
+    if (buffer) {
+      setActiveBufferId(buffer.id);
     }
-    return networkMessages().filter((m) => m.target === buffer);
-  });
+  }
 
-  // * Get channel state for active buffer (if it's a channel)
-  const activeChannel = createMemo(() => {
+  // * Handle input from buffer
+  function handleInput(text: string) {
     const buffer = activeBuffer();
-    if (!buffer) return null;
-    if (!isChannel(buffer)) return null;
-    const key = `${params().network}:${buffer}`;
-    return channels()[key] ?? null;
-  });
+    if (!buffer) return;
 
-  // * Auto-scroll to bottom when new messages arrive
-  createEffect(
-    on(bufferMessages, () => {
-      bufferRef?.scrollTo(0, bufferRef.scrollHeight);
-    })
-  );
+    // * Parse /commands
+    if (text.startsWith("/")) {
+      const [command, ...args] = text.slice(1).split(" ");
+      api.events.subscribe().send({
+        type: "irc",
+        data: {
+          network: params().network,
+          command: command.toUpperCase(),
+          args,
+        },
+      });
+      return;
+    }
+
+    // * Send as PRIVMSG if we have a target (channel or query)
+    if (buffer.target && buffer.target !== "*") {
+      api.events.subscribe().send({
+        type: "irc",
+        data: {
+          network: params().network,
+          command: "PRIVMSG",
+          args: [buffer.target, text],
+        },
+      });
+    }
+  }
 
   return (
     <div class="flex h-full flex-col overflow-hidden">
-      {/* Buffer tabs */}
-      <div class="scrollbar-thin flex items-center gap-1 overflow-x-auto border-neutral-800 border-b bg-neutral-900/30 px-2 py-1">
-        <Show
-          fallback={
-            <span class="px-2 py-1 text-neutral-600 text-xs">No buffers</span>
-          }
-          when={bufferTargets().length > 0}
-        >
-          <For each={bufferTargets()}>
-            {(target) => (
-              <button
-                class={`rounded px-2 py-1 text-xs transition-colors ${
-                  activeBuffer() === target
-                    ? "bg-neutral-700 text-neutral-100"
-                    : "text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200"
-                }`}
-                onClick={() => setActiveBuffer(target)}
-                type="button"
-              >
-                {target}
-              </button>
-            )}
-          </For>
-        </Show>
-      </div>
-
-      {/* Main content area with messages and optional nick list */}
-      <div class="flex flex-1 overflow-hidden">
-        {/* Messages */}
-        <div
-          class="scrollbar-thin flex-1 overflow-y-auto bg-neutral-950 py-2"
-          ref={bufferRef}
-        >
-          <Show
-            fallback={
-              <div class="flex h-full items-center justify-center">
-                <div class="text-center text-neutral-600">
-                  <p>No messages</p>
-                </div>
-              </div>
-            }
-            when={bufferMessages().length > 0}
-          >
-            <For each={bufferMessages()}>
-              {(message) => <MessageLine message={message} />}
-            </For>
-          </Show>
-        </div>
-
-        {/* Nick list sidebar for channels */}
-        <Show when={activeChannel()}>
-          {(channel) => <NickList users={channel().users} />}
-        </Show>
-      </div>
-
-      <CommandInput network={params().network} onSend={sendCommand} />
-    </div>
-  );
-}
-
-function NickList(props: { users: ChannelMember[] }) {
-  // * Sort users: ops first, then voiced, then regular, alphabetically within each group
-  const sortedUsers = createMemo(() =>
-    [...props.users].sort((a, b) => {
-      const aPriority = getMemberSortPriority(a.modes);
-      const bPriority = getMemberSortPriority(b.modes);
-      if (aPriority !== bPriority) return aPriority - bPriority;
-      return a.nick.localeCompare(b.nick);
-    })
-  );
-
-  return (
-    <div class="scrollbar-thin w-48 overflow-y-auto border-neutral-800 border-l bg-neutral-900/30">
-      <div class="border-neutral-800 border-b px-3 py-2">
-        <span class="font-medium text-neutral-400 text-xs">
-          {props.users.length} users
-        </span>
-      </div>
-      <div class="py-1">
-        <For each={sortedUsers()}>
-          {(user) => {
-            const prefix = getModePrefix(user.modes);
-            const prefixColor =
-              prefix === "@" ? "text-amber-400" : "text-emerald-400";
-            return (
-              <div class="group flex items-center px-3 py-0.5 text-sm hover:bg-neutral-800/50">
-                <span class={`w-3 ${prefixColor}`}>{prefix}</span>
-                <span class="text-neutral-300">{user.nick}</span>
-              </div>
-            );
-          }}
-        </For>
-      </div>
+      <BufferTabs
+        active={activeBuffer()?.target ?? activeBufferId()}
+        buffers={bufferIds()}
+        onSelect={handleSelectBuffer}
+      />
+      <Buffer
+        lines={activeBuffer()?.lines ?? []}
+        onInput={handleInput}
+        sidebar={sidebarData()}
+      />
     </div>
   );
 }

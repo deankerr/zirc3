@@ -20,8 +20,8 @@ export class IRCClient {
   readonly buffers = new Map<string, RingBuffer<IRCMessage>>();
   readonly channels = new Map<string, IRCChannel>();
 
-  private readonly onMessage: MessageHandler;
-  private readonly onConnection?: ConnectionHandler;
+  private readonly onMessage: MessageHandler<IRCClient>;
+  private readonly onConnection?: ConnectionHandler<IRCClient>;
   private readonly quitMessage?: string;
   private logWriter: ReturnType<ReturnType<typeof Bun.file>["writer"]> | null =
     null;
@@ -31,8 +31,8 @@ export class IRCClient {
     options: IRC.ClientOptions;
     autoJoin?: string[];
     quitMessage?: string;
-    onMessage: MessageHandler;
-    onConnection?: ConnectionHandler;
+    onMessage: MessageHandler<IRCClient>;
+    onConnection?: ConnectionHandler<IRCClient>;
   }) {
     this.network = args.network;
     this.autoJoin = args.autoJoin ?? [];
@@ -57,12 +57,14 @@ export class IRCClient {
   }
 
   private setupEventHandlers() {
-    // * registered event - auto-join channels and send user info
+    // * registered event - auto-join channels and emit registration
     this.irc.on("registered", () => {
       for (const channel of this.autoJoin) {
         this.irc.join(channel);
       }
-      this.emitConnection({ type: "registered", user: this.getUserInfo() });
+      this.emitConnection({ type: "registered", nick: this.irc.user.nick });
+      // * Also emit user update so state sync picks up full user info
+      this.emitConnection({ type: "user_updated", user: this.getUserInfo() });
     });
 
     // * user update events
@@ -301,5 +303,21 @@ export class IRCClient {
 
   setTopic(channel: string, topic: string) {
     this.irc.setTopic(channel, topic);
+  }
+
+  // * Get full network state for state sync
+  getNetworkState() {
+    const channels: Record<string, ReturnType<IRCChannel["getState"]>> = {};
+    for (const [key, channel] of this.channels) {
+      channels[key] = channel.getState();
+    }
+    return {
+      name: this.network,
+      status: this.irc.connected
+        ? ("connected" as const)
+        : ("disconnected" as const),
+      user: this.irc.user.nick ? this.getUserInfo() : undefined,
+      channels,
+    };
   }
 }

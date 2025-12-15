@@ -1788,8 +1788,9 @@ declare module "irc-framework" {
      *
      * @remarks
      * Unix timestamp in SECONDS (not milliseconds).
+     * NOTE: irc-framework passes this as a raw IRC param string, not number.
      */
-    when?: number;
+    when?: string;
   }
 
   export interface InviteEventArgs {

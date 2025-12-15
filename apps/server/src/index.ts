@@ -4,7 +4,7 @@ import { Elysia } from "elysia";
 import { ClientManager } from "./client-manager";
 import { config } from "./config";
 import { CommandMessage, EventMessage } from "./model";
-import type { IRCMessage, SystemEvent } from "./types";
+import type { IRCMessage, NetworkStateSync, SystemEvent } from "./types";
 
 const PORT = Number(process.env.PORT ?? 3000);
 
@@ -19,9 +19,14 @@ clientManager.onMessage((message) => {
   broadcastIRC(message);
 });
 
-// * Subscribe to system events
+// * Subscribe to system events (historical, buffered)
 clientManager.onSystem((event) => {
   broadcastSystem(event);
+});
+
+// * Subscribe to state sync (live state updates)
+clientManager.onState((state) => {
+  broadcastState(state);
 });
 
 // * Load networks from config
@@ -41,6 +46,14 @@ function broadcastIRC(data: IRCMessage) {
 function broadcastSystem(data: SystemEvent) {
   console.log("[ws:broadcast:system]", data.event.type);
   const message = { type: "system" as const, data };
+  for (const ws of wsClients) {
+    ws.send(message);
+  }
+}
+
+function broadcastState(data: NetworkStateSync) {
+  console.log("[ws:broadcast:state]", data.name, data.status);
+  const message = { type: "state" as const, data };
   for (const ws of wsClients) {
     ws.send(message);
   }
@@ -100,6 +113,13 @@ export const app = new Elysia()
       // * Replay buffered system events
       for (const event of clientManager.systemBuffer.getAll()) {
         ws.send({ type: "system", data: event });
+      }
+
+      // * Send current state for all networks
+      for (const client of clientManager.clients.values()) {
+        const data = client.getNetworkState();
+        console.log(data);
+        ws.send({ type: "state", data });
       }
 
       // * Replay buffered messages (sorted by timestamp across all buffers)
