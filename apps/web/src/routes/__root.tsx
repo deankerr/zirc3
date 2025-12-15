@@ -15,10 +15,15 @@ import {
 } from "solid-js";
 import {
   api,
+  type ChannelState,
   type IRCMessage,
   type NetworkInfo,
   type SystemEvent,
 } from "@/api";
+
+// * Channels indexed by "network:channel"
+type ChannelsMap = Record<string, ChannelState>;
+
 import Header from "@/components/header";
 
 const HTTP_REGEX = /^http/;
@@ -48,6 +53,7 @@ type AppContextType = {
   messages: Accessor<IRCMessage[]>;
   systemEvents: Accessor<SystemEvent[]>;
   networks: Accessor<NetworkInfo[]>;
+  channels: Accessor<ChannelsMap>;
   connected: Accessor<boolean>;
   sendCommand: (network: string, command: string, args: string[]) => void;
 };
@@ -68,6 +74,7 @@ function AppProvider(props: { children: JSX.Element }) {
     LOGO_MESSAGE,
   ]);
   const [networks, setNetworks] = createSignal<NetworkInfo[]>([]);
+  const [channels, setChannels] = createSignal<ChannelsMap>({});
   const [connected, setConnected] = createSignal(false);
 
   let ws: ReturnType<typeof api.events.subscribe> | undefined;
@@ -105,8 +112,9 @@ function AppProvider(props: { children: JSX.Element }) {
     });
 
     ws.subscribe(({ data: msg }) => {
+      console.log("[ws:recv]", msg.type, msg.data);
+
       if (msg.type === "networks") {
-        console.log("[ws] networks", msg.data);
         setNetworks(msg.data);
         return;
       }
@@ -123,13 +131,20 @@ function AppProvider(props: { children: JSX.Element }) {
       }
 
       if (msg.type === "system") {
+        const event = msg.data;
         setSystemEvents((prev) => {
-          const updated = [...prev, msg.data];
+          const updated = [...prev, event];
           if (updated.length > 100) {
             return updated.slice(-100);
           }
           return updated;
         });
+
+        // * Track channel state updates
+        if (event.event.type === "channel_updated") {
+          const key = `${event.network}:${event.event.channel.name}`;
+          setChannels((prev) => ({ ...prev, [key]: event.event.channel }));
+        }
       }
     });
   });
@@ -144,7 +159,14 @@ function AppProvider(props: { children: JSX.Element }) {
 
   return (
     <AppContext.Provider
-      value={{ messages, systemEvents, networks, connected, sendCommand }}
+      value={{
+        messages,
+        systemEvents,
+        networks,
+        channels,
+        connected,
+        sendCommand,
+      }}
     >
       {props.children}
     </AppContext.Provider>

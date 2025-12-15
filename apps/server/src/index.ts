@@ -1,3 +1,4 @@
+import { logger } from "@bogeychan/elysia-logger";
 import { cors } from "@elysiajs/cors";
 import { Elysia } from "elysia";
 import { ClientManager } from "./client-manager";
@@ -30,6 +31,7 @@ for (const [network, networkConfig] of Object.entries(config.networks)) {
 }
 
 function broadcastIRC(data: IRCMessage) {
+  console.log("[ws:broadcast:irc]", data.command, data.target);
   const message = { type: "irc" as const, data };
   for (const ws of wsClients) {
     ws.send(message);
@@ -37,13 +39,19 @@ function broadcastIRC(data: IRCMessage) {
 }
 
 function broadcastSystem(data: SystemEvent) {
+  console.log("[ws:broadcast:system]", data.event.type);
   const message = { type: "system" as const, data };
   for (const ws of wsClients) {
     ws.send(message);
   }
 }
 
-const app = new Elysia()
+export const app = new Elysia()
+  .use(
+    logger({
+      level: "info",
+    })
+  )
   .use(
     cors({
       origin: process.env.CORS_ORIGIN || "",
@@ -121,5 +129,3 @@ const app = new Elysia()
   .listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
   });
-
-export type ElysiaApp = typeof app;

@@ -12,8 +12,8 @@ This is essentially a next-generation version of The Lounge IRC - a multi-tenant
 
 ## Scripts
 
-- `bun check-types` This is a fullstack app, never try to partially typecheck the individual workspaces as you may have caused issues downstream.
+- `bun check-types`: This is a fullstack app, you can't partially typecheck the individual workspaces, as you may have caused issues downstream.
 
 ## Coding
 
-- The linter will aggressively remove unused code, such as imports. If you import something, make sure you're using it in the same edit.
+- The linter will aggressively remove unused code, such as imports. If you import something, make sure you're using it in the same edit, or just add the import last.
