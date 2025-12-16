@@ -1,6 +1,11 @@
 import { createRootRouteWithContext, Outlet } from "@tanstack/solid-router";
 import { onCleanup, onMount } from "solid-js";
-import { api, type EventMessage, type NetworkStateSync } from "@/api";
+import {
+  api,
+  type EventMessage,
+  type IRCCommand,
+  type NetworkStateSync,
+} from "@/api";
 import { Header } from "@/components/header";
 import { NetworkTabs } from "@/components/network-tabs";
 import {
@@ -19,9 +24,20 @@ export const Route = createRootRouteWithContext<RouterContext>()({
   component: RootComponent,
 });
 
+// * WebSocket instance shared via closure
+let ws: ReturnType<typeof api.events.subscribe> | undefined;
+
+function sendCommand(cmd: IRCCommand) {
+  if (!ws) {
+    console.error("[ws] not connected, cannot send command");
+    return;
+  }
+  ws.send({ type: "irc", data: cmd });
+}
+
 function RootComponent() {
   return (
-    <StoreProvider>
+    <StoreProvider sendCommand={sendCommand}>
       <AppShell />
     </StoreProvider>
   );
@@ -82,8 +98,6 @@ function AppShell() {
     };
   }
 
-  let ws: ReturnType<typeof api.events.subscribe> | undefined;
-
   onMount(() => {
     actions.setConnectionStatus("connecting");
     ws = api.events.subscribe();
@@ -138,6 +152,7 @@ function AppShell() {
 
   onCleanup(() => {
     ws?.close();
+    ws = undefined;
   });
 
   return (

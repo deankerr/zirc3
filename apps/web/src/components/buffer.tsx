@@ -1,5 +1,6 @@
 import { createEffect, createSignal, For, on, Show } from "solid-js";
-import type { BufferLine, ChannelMember } from "@/store/types";
+import type { ChannelMember } from "@/api";
+import type { BufferLine } from "@/store/types";
 import { BufferLineComponent } from "./buffer-line";
 import { BufferSidebar } from "./buffer-sidebar";
 
@@ -38,7 +39,7 @@ export function Buffer(props: BufferProps) {
         {/* Lines */}
         <div
           class="scrollbar-thin flex-1 overflow-y-auto bg-[var(--color-bg-primary)] py-2"
-          ref={contentRef}
+          ref={(el) => (contentRef = el)}
         >
           <Show
             fallback={

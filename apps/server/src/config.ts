@@ -1,5 +1,4 @@
 import type IRC from "irc-framework";
-import configJson from "../config.json";
 
 export type NetworkConfig = IRC.ClientOptions & {
   channels?: string[];
@@ -7,6 +6,10 @@ export type NetworkConfig = IRC.ClientOptions & {
   enabled?: boolean;
 };
 
-export const config = configJson as {
+export type Config = {
   networks: Record<string, NetworkConfig>;
 };
+
+const configPath = process.env.ZIRC_CONFIG ?? "./config.json";
+
+export const config: Config = await Bun.file(configPath).json();

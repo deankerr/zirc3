@@ -1,10 +1,9 @@
 import type { SetStoreFunction } from "solid-js/store";
-import type { NetworkStateSync } from "@/api";
+import type { ChannelState, NetworkStateSync } from "@/api";
 import type {
   BufferLine,
   BufferState,
   BufferType,
-  ChannelState,
   ConnectionStatus,
   NetworkState,
   Store,

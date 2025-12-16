@@ -1,6 +1,6 @@
 import type IRC from "irc-framework";
-import { numerics } from "@/irc/numerics";
-import type { IRCMessage } from "@/types";
+import type { IRCMessage } from "../types";
+import { numerics } from "./numerics";
 
 const CTCP_MARKER = "\x01";
 

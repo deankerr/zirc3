@@ -1,5 +1,6 @@
 import { createContext, type ParentProps, useContext } from "solid-js";
 import { createStore, type SetStoreFunction } from "solid-js/store";
+import type { IRCCommand } from "@/api";
 import type { Store } from "./types";
 
 const SYSTEM_BUFFER_ID = "system";
@@ -19,18 +20,25 @@ function createInitialStore(): Store {
   };
 }
 
+export type SendCommand = (cmd: IRCCommand) => void;
+
 type StoreContextValue = {
   store: Store;
   setStore: SetStoreFunction<Store>;
+  sendCommand: SendCommand;
 };
 
 const StoreContext = createContext<StoreContextValue>();
 
-export function StoreProvider(props: ParentProps) {
+export function StoreProvider(
+  props: ParentProps<{ sendCommand: SendCommand }>
+) {
   const [store, setStore] = createStore<Store>(createInitialStore());
 
   return (
-    <StoreContext.Provider value={{ store, setStore }}>
+    <StoreContext.Provider
+      value={{ store, setStore, sendCommand: props.sendCommand }}
+    >
       {props.children}
     </StoreContext.Provider>
   );

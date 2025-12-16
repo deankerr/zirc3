@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/solid-router";
 import { createEffect, createMemo, createSignal } from "solid-js";
-import { api } from "@/api";
 import { Buffer } from "@/components/buffer";
 import { BufferTabs } from "@/components/buffer-tabs";
 import { useStore } from "@/store";
@@ -17,7 +16,7 @@ function getBufferSortKey(type: string): number {
 
 function NetworkView() {
   const params = Route.useParams();
-  const { store } = useStore();
+  const { store, sendCommand } = useStore();
   const [activeBufferId, setActiveBufferId] = createSignal<string | null>(null);
 
   // * Get buffers for this network, sorted: server first, then channels, then queries
@@ -87,26 +86,20 @@ function NetworkView() {
     // * Parse /commands
     if (text.startsWith("/")) {
       const [command, ...args] = text.slice(1).split(" ");
-      api.events.subscribe().send({
-        type: "irc",
-        data: {
-          network: params().network,
-          command: command.toUpperCase(),
-          args,
-        },
+      sendCommand({
+        network: params().network,
+        command: command.toUpperCase(),
+        args,
       });
       return;
     }
 
     // * Send as PRIVMSG if we have a target (channel or query)
     if (buffer.target && buffer.target !== "*") {
-      api.events.subscribe().send({
-        type: "irc",
-        data: {
-          network: params().network,
-          command: "PRIVMSG",
-          args: [buffer.target, text],
-        },
+      sendCommand({
+        network: params().network,
+        command: "PRIVMSG",
+        args: [buffer.target, text],
       });
     }
   }

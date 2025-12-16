@@ -1,0 +1,16 @@
+{
+  "name": "@zirc3/cli",
+  "type": "module",
+  "scripts": {
+    "start": "bun run src/index.ts",
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@zirc3/server": "workspace:*",
+    "@elysiajs/eden": "^1.4.5"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "@types/bun": "^1.3.4"
+  }
+}

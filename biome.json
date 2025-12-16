@@ -26,7 +26,6 @@
     ]
   },
   "extends": ["ultracite/core", "ultracite/solid"],
-
   "linter": {
     "rules": {
       "style": {
@@ -37,5 +36,20 @@
         "noShadow": "off"
       }
     }
-  }
+  },
+  "overrides": [
+    {
+      "includes": ["apps/web/**"],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noUselessUndefinedInitialization": "off"
+          },
+          "suspicious": {
+            "noAssignInExpressions": "off"
+          }
+        }
+      }
+    }
+  ]
 }

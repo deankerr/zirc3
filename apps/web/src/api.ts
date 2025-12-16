@@ -5,6 +5,7 @@ export type {
   ChannelMember,
   ChannelState,
   EventMessage,
+  IRCCommand,
   IRCMessage,
   NetworkInfo,
   NetworkStateSync,

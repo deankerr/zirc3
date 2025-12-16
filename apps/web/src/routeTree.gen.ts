@@ -8,70 +8,70 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from './routes/__root'
-import { Route as NetworkRouteImport } from './routes/$network'
-import { Route as IndexRouteImport } from './routes/index'
+import { Route as rootRouteImport } from "./routes/__root";
+import { Route as NetworkRouteImport } from "./routes/$network";
+import { Route as IndexRouteImport } from "./routes/index";
 
 const NetworkRoute = NetworkRouteImport.update({
-  id: '/$network',
-  path: '/$network',
-  getParentRoute: () => rootRouteImport,
-} as any)
+	id: "/$network",
+	path: "/$network",
+	getParentRoute: () => rootRouteImport,
+} as any);
 const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
+	id: "/",
+	path: "/",
+	getParentRoute: () => rootRouteImport,
+} as any);
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/$network': typeof NetworkRoute
+	"/": typeof IndexRoute;
+	"/$network": typeof NetworkRoute;
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/$network': typeof NetworkRoute
+	"/": typeof IndexRoute;
+	"/$network": typeof NetworkRoute;
 }
 export interface FileRoutesById {
-  __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/$network': typeof NetworkRoute
+	__root__: typeof rootRouteImport;
+	"/": typeof IndexRoute;
+	"/$network": typeof NetworkRoute;
 }
 export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/$network'
-  fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/$network'
-  id: '__root__' | '/' | '/$network'
-  fileRoutesById: FileRoutesById
+	fileRoutesByFullPath: FileRoutesByFullPath;
+	fullPaths: "/" | "/$network";
+	fileRoutesByTo: FileRoutesByTo;
+	to: "/" | "/$network";
+	id: "__root__" | "/" | "/$network";
+	fileRoutesById: FileRoutesById;
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  NetworkRoute: typeof NetworkRoute
+	IndexRoute: typeof IndexRoute;
+	NetworkRoute: typeof NetworkRoute;
 }
 
-declare module '@tanstack/solid-router' {
-  interface FileRoutesByPath {
-    '/$network': {
-      id: '/$network'
-      path: '/$network'
-      fullPath: '/$network'
-      preLoaderRoute: typeof NetworkRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-  }
+declare module "@tanstack/solid-router" {
+	interface FileRoutesByPath {
+		"/$network": {
+			id: "/$network";
+			path: "/$network";
+			fullPath: "/$network";
+			preLoaderRoute: typeof NetworkRouteImport;
+			parentRoute: typeof rootRouteImport;
+		};
+		"/": {
+			id: "/";
+			path: "/";
+			fullPath: "/";
+			preLoaderRoute: typeof IndexRouteImport;
+			parentRoute: typeof rootRouteImport;
+		};
+	}
 }
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  NetworkRoute: NetworkRoute,
-}
+	IndexRoute: IndexRoute,
+	NetworkRoute: NetworkRoute,
+};
 export const routeTree = rootRouteImport
-  ._addFileChildren(rootRouteChildren)
-  ._addFileTypes<FileRouteTypes>()
+	._addFileChildren(rootRouteChildren)
+	._addFileTypes<FileRouteTypes>();

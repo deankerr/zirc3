@@ -6,7 +6,8 @@
     "dev": "vite --port 3402",
     "build": "vite build",
     "serve": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "check-types": "tsc --noEmit"
   },
   "dependencies": {
     "@zirc3/server": "workspace:*",

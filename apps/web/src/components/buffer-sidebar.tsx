@@ -1,5 +1,5 @@
 import { createMemo, For } from "solid-js";
-import type { ChannelMember } from "@/store/types";
+import type { ChannelMember } from "@/api";
 
 function getModePrefix(modes: string[]) {
   if (modes.includes("o")) return "@";

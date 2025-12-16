@@ -45,7 +45,7 @@ export function BufferLineComponent(props: { line: BufferLine }) {
       <span class="shrink-0 text-[var(--color-text-muted)]">
         {formatTime(line.timestamp)}
       </span>
-      {line.source && (
+      {!!line.source && (
         <span
           class="w-20 shrink-0 truncate text-right"
           style={{ color: sourceColor }}

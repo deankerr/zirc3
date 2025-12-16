@@ -1,9 +1,10 @@
 [install]
 linker = "isolated"
 minimumReleaseAge = 259200
+minimumReleaseAgeExcludes = ["elysia", "@elysiajs/eden"]
 
 [console]
 depth = 6
 
 [run]
-bun = true
+bun = false

@@ -1,4 +1,4 @@
-import type { ChannelMember, ChannelState, UserInfo } from "@/api";
+import type { ChannelState, UserInfo } from "@/api";
 
 export type LineType =
   | "message"
@@ -53,5 +53,3 @@ export type Store = {
     activeBuffer: string | null;
   };
 };
-
-export type { ChannelMember, ChannelState, UserInfo };
