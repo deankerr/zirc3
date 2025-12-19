@@ -17,3 +17,9 @@ This is essentially a next-generation version of The Lounge IRC - a multi-tenant
 ## Coding
 
 - The linter will aggressively remove unused code, such as imports. If you import something, make sure you're using it in the same edit, or just add the import last.
+
+## Monorepo
+
+- `apps/server`: IRC bouncer/client manager, Elysia
+- `apps/client`: SolidJS/Vite web client
+- `packages/irc-framework`: We're not actually using the package from here, it's just for reference

@@ -22,7 +22,8 @@
       "!**/.alchemy",
       "!**/.svelte-kit",
       "!**/wrangler.jsonc",
-      "!**/.source"
+      "!**/.source",
+      "!**/packages/irc-framework"
     ]
   },
   "extends": ["ultracite/core", "ultracite/solid"],
