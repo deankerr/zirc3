@@ -78,26 +78,34 @@ export class IRCChannel {
     return false;
   }
 
-  handleUserlist(users: Array<{ nick: string; modes?: string[] }>) {
+  handleUserlist(
+    users: Array<{
+      nick: string;
+      modes?: string[];
+      ident?: string;
+      hostname?: string;
+    }>
+  ) {
     this.users = users.map((u) => ({
       nick: u.nick,
       modes: u.modes ?? [],
+      ident: u.ident,
+      hostname: u.hostname,
     }));
   }
 
   handleTopic(topic: string, nick?: string, time?: number) {
     this.topic = topic;
     if (topic === "") {
-      // topic cleared - remove metadata
+      // * Topic cleared - remove metadata
       this.topicSetBy = undefined;
       this.topicSetAt = undefined;
-    } else {
-      if (nick) {
-        this.topicSetBy = nick;
-      }
-      if (time) {
-        this.topicSetAt = time;
-      }
+    } else if (nick) {
+      // * Topic set - update metadata
+      // nick is present when someone changes the topic (TOPIC command)
+      // but not when we receive initial topic on join (332 numeric)
+      this.topicSetBy = nick;
+      this.topicSetAt = time ?? Date.now();
     }
   }
 
