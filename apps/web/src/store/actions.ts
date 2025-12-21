@@ -1,5 +1,5 @@
 import type { SetStoreFunction } from "solid-js/store";
-import type { ChannelState, NetworkStateSync } from "@/api";
+import type { ChannelStateType } from "@/api";
 import type {
   BufferLine,
   BufferState,
@@ -7,6 +7,7 @@ import type {
   ConnectionStatus,
   NetworkState,
   Store,
+  UserInfo,
 } from "./types";
 
 const MAX_LINES_PER_BUFFER = 500;
@@ -84,7 +85,11 @@ export function createActions(setStore: SetStoreFunction<Store>) {
       });
     },
 
-    updateChannel(network: string, channelName: string, state: ChannelState) {
+    updateChannel(
+      network: string,
+      channelName: string,
+      state: ChannelStateType
+    ) {
       const key = channelName.toLowerCase();
       setStore("networks", network, "channels", (channels) => ({
         ...channels,
@@ -107,7 +112,12 @@ export function createActions(setStore: SetStoreFunction<Store>) {
     },
 
     // * Sync full network state from server
-    syncNetworkState(state: NetworkStateSync) {
+    syncNetworkState(state: {
+      name: string;
+      status: "connecting" | "connected" | "disconnected";
+      user?: UserInfo;
+      channels: Record<string, ChannelStateType>;
+    }) {
       setStore("networks", state.name, {
         name: state.name,
         status: state.status,

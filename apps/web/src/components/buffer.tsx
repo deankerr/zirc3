@@ -1,12 +1,12 @@
 import { createEffect, createSignal, For, on, Show } from "solid-js";
-import type { ChannelMember } from "@/api";
+import type { ChannelMemberType } from "@/api";
 import type { BufferLine } from "@/store/types";
 import { BufferLineComponent } from "./buffer-line";
 import { BufferSidebar } from "./buffer-sidebar";
 
 export type BufferProps = {
   lines: BufferLine[];
-  sidebar?: { users: ChannelMember[] };
+  sidebar?: { users: ChannelMemberType[] };
   onInput: (text: string) => void;
 };
 

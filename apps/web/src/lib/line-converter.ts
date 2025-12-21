@@ -1,5 +1,8 @@
-import type { IRCMessage, SystemEvent } from "@/api";
+import type { IRCMessageType } from "@/api";
 import type { BufferLine, LineType } from "@/store/types";
+
+// Local type with timestamp as number (for store/lines)
+type IRCMessage = Omit<IRCMessageType, "timestamp"> & { timestamp: number };
 
 function parseNick(source?: string): string | undefined {
   if (!source) return;
@@ -108,59 +111,11 @@ export function ircMessageToLine(msg: IRCMessage): BufferLine {
   };
 }
 
-function systemEventToContent(event: SystemEvent["event"]): string {
-  switch (event.type) {
-    case "connecting":
-      return event.address
-        ? `Connecting to ${event.address}...`
-        : "Connecting...";
-    case "registered":
-      return `Connected as ${event.nick}`;
-    case "socket_close":
-      return event.error
-        ? `Connection closed: ${event.error}`
-        : "Connection closed";
-    case "socket_error":
-      return `Connection error: ${event.error}`;
-    case "reconnecting":
-      return `Reconnecting (attempt ${event.attempt}, waiting ${event.wait}ms)...`;
-    case "close":
-      return "Disconnected";
-    default:
-      return "Unknown event";
-  }
-}
-
-function systemEventToLineType(eventType: string): LineType {
-  switch (eventType) {
-    case "registered":
-      return "system";
-    case "socket_error":
-      return "error";
-    case "socket_close":
-    case "close":
-      return "quit";
-    case "connecting":
-    case "reconnecting":
-      return "info";
-    default:
-      return "system";
-  }
-}
-
-export function systemEventToLine(evt: SystemEvent): BufferLine {
-  return {
-    id: evt.id,
-    timestamp: evt.timestamp,
-    type: systemEventToLineType(evt.event.type),
-    source: evt.network,
-    sourceStyle: "info",
-    content: systemEventToContent(evt.event),
-  };
-}
-
 // * Get the buffer ID for an IRC message
-export function getMessageBufferId(msg: IRCMessage): string {
+export function getMessageBufferId(msg: {
+  network: string;
+  target?: string;
+}): string {
   // * Messages without target go to server buffer
   if (!msg.target) {
     return `${msg.network}:*`;

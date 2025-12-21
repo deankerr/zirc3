@@ -1,5 +1,5 @@
 import { createMemo, For } from "solid-js";
-import type { ChannelMember } from "@/api";
+import type { ChannelMemberType } from "@/api";
 
 function getModePrefix(modes: string[]) {
   if (modes.includes("o")) return "@";
@@ -13,7 +13,7 @@ function getMemberSortPriority(modes: string[]) {
   return 2;
 }
 
-export function BufferSidebar(props: { users: ChannelMember[] }) {
+export function BufferSidebar(props: { users: ChannelMemberType[] }) {
   const sortedUsers = createMemo(() =>
     [...props.users].sort((a, b) => {
       const aPriority = getMemberSortPriority(a.modes);

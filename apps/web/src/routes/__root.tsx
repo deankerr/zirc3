@@ -1,10 +1,10 @@
 import { createRootRouteWithContext, Outlet } from "@tanstack/solid-router";
 import { onCleanup, onMount } from "solid-js";
 import {
-  api,
-  type EventMessage,
-  type IRCCommand,
-  type NetworkStateSync,
+  client,
+  type IRCCommandType,
+  type IRCMessageType,
+  type NetworkStateType,
 } from "@/api";
 import { Header } from "@/components/header";
 import { NetworkTabs } from "@/components/network-tabs";
@@ -12,7 +12,6 @@ import {
   getBufferType,
   getMessageBufferId,
   ircMessageToLine,
-  systemEventToLine,
 } from "@/lib/line-converter";
 import { StoreProvider, SYSTEM_BUFFER_ID, useStore } from "@/store";
 import { type Actions, createActions } from "@/store/actions";
@@ -24,15 +23,19 @@ export const Route = createRootRouteWithContext<RouterContext>()({
   component: RootComponent,
 });
 
-// * WebSocket instance shared via closure
-let ws: ReturnType<typeof api.events.subscribe> | undefined;
-
-function sendCommand(cmd: IRCCommand) {
-  if (!ws) {
-    console.error("[ws] not connected, cannot send command");
-    return;
+// * Command sender using RPC
+async function sendCommand(cmd: IRCCommandType) {
+  console.log("[commands] sending:", cmd);
+  try {
+    const result = await client.commands.send(cmd);
+    if (!result.success && result.error) {
+      console.error("[commands] error:", result.error);
+    }
+    return result;
+  } catch (err) {
+    console.error("[commands] request failed:", err);
+    return { success: false as const, error: String(err) };
   }
-  ws.send({ type: "irc", data: cmd });
 }
 
 function RootComponent() {
@@ -43,48 +46,88 @@ function RootComponent() {
   );
 }
 
-function handleNetworksMessage(actions: Actions, data: { name: string }[]) {
-  actions.setNetworks(data.map((n) => n.name));
-  for (const network of data) {
-    const serverId = `${network.name}:*`;
-    actions.ensureBuffer({
-      id: serverId,
-      type: "server",
-      network: network.name,
-      target: "*",
-    });
-  }
-}
-
-function handleIrcMessage(
-  actions: Actions,
-  msg: EventMessage & { type: "irc" }
-) {
-  const ircMsg = msg.data;
-  const bufferId = getMessageBufferId(ircMsg);
-  const target = ircMsg.target ?? "*";
+function handleIrcMessage(actions: Actions, msg: IRCMessageType) {
+  const bufferId = getMessageBufferId(msg);
+  const target = msg.target ?? "*";
   const bufferType = getBufferType(target);
 
   actions.ensureBuffer({
     id: bufferId,
     type: bufferType,
-    network: ircMsg.network,
+    network: msg.network,
     target,
   });
 
-  actions.addLine(bufferId, ircMessageToLine(ircMsg));
+  // Convert Date to number for line
+  const lineMsg = { ...msg, timestamp: msg.timestamp.getTime() };
+  actions.addLine(bufferId, ircMessageToLine(lineMsg));
 }
 
-function handleSystemMessage(
-  actions: Actions,
-  msg: EventMessage & { type: "system" }
-) {
-  const evt = msg.data;
-  actions.addLine(SYSTEM_BUFFER_ID, systemEventToLine(evt));
+function handleStateMessage(actions: Actions, state: NetworkStateType) {
+  // Ensure server buffer exists for this network
+  const serverId = `${state.network}:*`;
+  actions.ensureBuffer({
+    id: serverId,
+    type: "server",
+    network: state.network,
+    target: "*",
+  });
+
+  // Sync state (map field name)
+  actions.syncNetworkState({
+    name: state.network,
+    status: state.status,
+    user: state.user,
+    channels: state.channels,
+  });
 }
 
-function handleStateMessage(actions: Actions, state: NetworkStateSync) {
-  actions.syncNetworkState(state);
+async function connectToServer(actions: Actions, signal: AbortSignal) {
+  actions.setConnectionStatus("connecting");
+
+  try {
+    // Fetch initial network list
+    const networks = await client.networks.list();
+    actions.setNetworks(networks.map((n) => n.network));
+
+    // Initialize state for each network
+    for (const network of networks) {
+      handleStateMessage(actions, network);
+    }
+
+    actions.setConnectionStatus("connected");
+    actions.addLine(SYSTEM_BUFFER_ID, {
+      id: crypto.randomUUID(),
+      timestamp: Date.now(),
+      type: "system",
+      source: "client",
+      content: "Connected to server",
+    });
+
+    // Subscribe to events
+    const iterator = await client.subscribe({ signal });
+
+    for await (const event of iterator) {
+      if (event.type === "irc") {
+        console.log("[event:irc]", event.data.command, event.data.target);
+        handleIrcMessage(actions, event.data);
+      } else if (event.type === "state") {
+        console.log("[event:state]", event.data.network, event.data.status);
+        handleStateMessage(actions, event.data);
+      }
+    }
+  } catch (err) {
+    if (signal.aborted) return;
+    console.error("[orpc] error", err);
+    actions.setConnectionStatus("disconnected");
+    actions.addLine(SYSTEM_BUFFER_ID, {
+      id: crypto.randomUUID(),
+      timestamp: Date.now(),
+      type: "error",
+      source: "client",
+      content: `Connection error: ${String(err)}`,
+    });
+  }
 }
 
 function AppShell() {
@@ -99,60 +142,12 @@ function AppShell() {
   }
 
   onMount(() => {
-    actions.setConnectionStatus("connecting");
-    ws = api.events.subscribe();
+    const controller = new AbortController();
+    connectToServer(actions, controller.signal);
 
-    ws.on("open", () => {
-      actions.setConnectionStatus("connected");
-      actions.addLine(SYSTEM_BUFFER_ID, {
-        id: crypto.randomUUID(),
-        timestamp: Date.now(),
-        type: "system",
-        source: "client",
-        content: "Connected to server",
-      });
+    onCleanup(() => {
+      controller.abort();
     });
-
-    ws.on("close", () => {
-      actions.setConnectionStatus("disconnected");
-      actions.addLine(SYSTEM_BUFFER_ID, {
-        id: crypto.randomUUID(),
-        timestamp: Date.now(),
-        type: "quit",
-        source: "client",
-        content: "Disconnected from server",
-      });
-    });
-
-    ws.on("error", (err) => {
-      console.error("[ws] error", err);
-      actions.setConnectionStatus("disconnected");
-      actions.addLine(SYSTEM_BUFFER_ID, {
-        id: crypto.randomUUID(),
-        timestamp: Date.now(),
-        type: "error",
-        source: "client",
-        content: `Connection error: ${String(err)}`,
-      });
-    });
-
-    ws.subscribe(({ data: msg }) => {
-      console.log("[ws:recv]", msg.type, msg.data);
-      if (msg.type === "networks") {
-        handleNetworksMessage(actions, msg.data);
-      } else if (msg.type === "irc") {
-        handleIrcMessage(actions, msg);
-      } else if (msg.type === "system") {
-        handleSystemMessage(actions, msg);
-      } else if (msg.type === "state") {
-        handleStateMessage(actions, msg.data);
-      }
-    });
-  });
-
-  onCleanup(() => {
-    ws?.close();
-    ws = undefined;
   });
 
   return (

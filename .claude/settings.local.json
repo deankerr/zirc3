@@ -1,5 +1,29 @@
 {
   "permissions": {
-    "allow": ["Bash(bun check-types:*)", "Bash(cat:*)"]
+    "allow": [
+      "Bash(bun check-types:*)",
+      "Bash(cat:*)",
+      "Bash(bun run add-network:*)",
+      "Bash(bun run list-networks:*)",
+      "Bash(bun run:*)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "Bash(nc:*)",
+      "Bash(lsof:*)",
+      "Bash(pkill:*)",
+      "Bash(kill:*)",
+      "Bash(bun install)",
+      "mcp__chrome-devtools__take_screenshot",
+      "Bash(bun add:*)",
+      "Bash(curl:*)",
+      "mcp__chrome-devtools__navigate_page",
+      "mcp__chrome-devtools__list_console_messages",
+      "mcp__chrome-devtools__list_network_requests",
+      "mcp__chrome-devtools__take_snapshot",
+      "mcp__chrome-devtools__click",
+      "mcp__chrome-devtools__fill",
+      "mcp__chrome-devtools__press_key",
+      "Bash(echo:*)"
+    ]
   }
 }

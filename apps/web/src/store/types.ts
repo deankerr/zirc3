@@ -1,4 +1,4 @@
-import type { ChannelState, UserInfo } from "@/api";
+import type { ChannelStateType } from "@/api";
 
 export type LineType =
   | "message"
@@ -34,11 +34,19 @@ export type BufferState = {
   lines: BufferLine[];
 };
 
+export type UserInfo = {
+  nick: string;
+  username: string;
+  host: string;
+  away: boolean;
+  modes: string[];
+};
+
 export type NetworkState = {
   name: string;
   status: "connecting" | "connected" | "disconnected";
   user?: UserInfo;
-  channels: Record<string, ChannelState>;
+  channels: Record<string, ChannelStateType>;
 };
 
 export type ConnectionStatus = "disconnected" | "connecting" | "connected";

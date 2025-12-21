@@ -1,6 +1,6 @@
 import { createContext, type ParentProps, useContext } from "solid-js";
 import { createStore, type SetStoreFunction } from "solid-js/store";
-import type { IRCCommand } from "@/api";
+import type { IRCCommandType } from "@/api";
 import type { Store } from "./types";
 
 const SYSTEM_BUFFER_ID = "system";
@@ -20,7 +20,8 @@ function createInitialStore(): Store {
   };
 }
 
-export type SendCommand = (cmd: IRCCommand) => void;
+export type CommandResult = { success: true } | { success: false; error?: string };
+export type SendCommand = (cmd: IRCCommandType) => Promise<CommandResult>;
 
 type StoreContextValue = {
   store: Store;

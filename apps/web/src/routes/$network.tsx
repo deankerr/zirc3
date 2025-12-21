@@ -3,6 +3,7 @@ import { createEffect, createMemo, createSignal } from "solid-js";
 import { Buffer } from "@/components/buffer";
 import { BufferTabs } from "@/components/buffer-tabs";
 import { useStore } from "@/store";
+import { createActions } from "@/store/actions";
 
 export const Route = createFileRoute("/$network")({
   component: NetworkView,
@@ -16,7 +17,8 @@ function getBufferSortKey(type: string): number {
 
 function NetworkView() {
   const params = Route.useParams();
-  const { store, sendCommand } = useStore();
+  const { store, setStore, sendCommand } = useStore();
+  const actions = createActions(setStore);
   const [activeBufferId, setActiveBufferId] = createSignal<string | null>(null);
 
   // * Get buffers for this network, sorted: server first, then channels, then queries
@@ -79,28 +81,45 @@ function NetworkView() {
   }
 
   // * Handle input from buffer
-  function handleInput(text: string) {
+  async function handleInput(text: string) {
     const buffer = activeBuffer();
     if (!buffer) return;
+
+    // * Helper to show command errors in buffer
+    const showError = (error: string) => {
+      actions.addLine(buffer.id, {
+        id: crypto.randomUUID(),
+        timestamp: Date.now(),
+        type: "error",
+        source: "client",
+        content: error,
+      });
+    };
 
     // * Parse /commands
     if (text.startsWith("/")) {
       const [command, ...args] = text.slice(1).split(" ");
-      sendCommand({
+      const result = await sendCommand({
         network: params().network,
         command: command.toUpperCase(),
         args,
       });
+      if (!result.success && result.error) {
+        showError(`Command failed: ${result.error}`);
+      }
       return;
     }
 
     // * Send as PRIVMSG if we have a target (channel or query)
     if (buffer.target && buffer.target !== "*") {
-      sendCommand({
+      const result = await sendCommand({
         network: params().network,
         command: "PRIVMSG",
         args: [buffer.target, text],
       });
+      if (!result.success && result.error) {
+        showError(`Send failed: ${result.error}`);
+      }
     }
   }
 

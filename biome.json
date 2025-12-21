@@ -29,6 +29,9 @@
   "extends": ["ultracite/core", "ultracite/solid"],
   "linter": {
     "rules": {
+      "performance": {
+        "noBarrelFile": "off"
+      },
       "style": {
         "useConsistentTypeDefinitions": "off",
         "useBlockStatements": "off"
