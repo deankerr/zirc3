@@ -51,14 +51,37 @@ console.log(`Creating client "${name}" on ${host}:${port}`);
 
 ## Monorepo
 
-- `apps/server-orpc`: The new server implementation
-- `apps/cli`: Basic functionality demo
-- `packages/irc-client`: Enhanced irc-framework wrapper
+**Apps:**
+- `apps/server-orpc`: oRPC server - IRC bouncer, manages network connections
+- `apps/web`: SolidJS web client
+- `apps/cli`: CLI tools for testing/debugging
 
-- `apps/server`: IRC bouncer/client manager, Elysia (DEPRECATED)
-- `apps/client`: SolidJS/Vite web client (DEPRECATED)
-- `packages/irc-framework`: We're not actually using the package from here, it's just for reference
+**Packages:**
+- `packages/irc-client`: Enhanced irc-framework wrapper
+- `packages/db`: Drizzle ORM + libsql (not yet integrated)
+- `packages/config`: Shared TypeScript config
+
+## Scripts
+
+From the root:
+```bash
+bun run server              # Start server directly
+bun run cli <script>        # Run CLI script (e.g., bun run cli add-network --help)
+bun run dev                 # Start all dev servers via turbo
+bun run dev:server          # Start just the server
+bun run dev:web             # Start just the web client
+bun run check-types         # Type check all packages
+```
+
+CLI scripts (from apps/cli or via `bun run cli`):
+```bash
+add-network <name> [--host] [--port] [--nick] [--tls] [--channels]
+delete-network <name>
+list-networks [--json]
+send-command <network> <command> [...args]
+subscribe [--json]
+```
 
 # IRC
 
-- `ngircd` is running locally for demoing functionality, `localhost:6667`
+- `ngircd` is running locally for demoing functionality, host: `localhost`, port: `6667`

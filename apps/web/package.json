@@ -6,29 +6,26 @@
     "dev": "vite --port 3402",
     "build": "vite build",
     "serve": "vite preview",
-    "test": "vitest run",
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
-    "@zirc3/server-orpc": "workspace:*",
     "@orpc/client": "^1.12.3",
     "@orpc/server": "^1.12.3",
-    "@libsql/client": "catalog:",
     "@tailwindcss/vite": "^4.1.13",
     "@tanstack/router-plugin": "^1.141.2",
     "@tanstack/solid-form": "^1.20.0",
     "@tanstack/solid-query": "^5.87.4",
     "@tanstack/solid-router": "^1.141.2",
-    "libsql": "catalog:",
+    "@zirc3/server-orpc": "workspace:*",
     "lucide-solid": "^0.561.0",
     "solid-js": "^1.9.9",
     "tailwindcss": "^4.1.13"
   },
   "devDependencies": {
+    "@tanstack/solid-query-devtools": "^5.87.4",
+    "@tanstack/solid-router-devtools": "^1.141.2",
     "typescript": "^5.9.2",
     "vite": "^7.1.5",
-    "vite-plugin-solid": "^2.11.8",
-    "@tanstack/solid-query-devtools": "^5.87.4",
-    "@tanstack/solid-router-devtools": "^1.141.2"
+    "vite-plugin-solid": "^2.11.8"
   }
 }

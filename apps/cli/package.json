@@ -2,23 +2,21 @@
   "name": "@zirc3/cli",
   "type": "module",
   "scripts": {
-    "start": "bun run src/index.ts",
     "add-network": "bun run src/add-network.ts",
-    "list-networks": "bun run src/list-networks.ts",
     "delete-network": "bun run src/delete-network.ts",
+    "list-networks": "bun run src/list-networks.ts",
+    "send-command": "bun run src/send-command.ts",
     "subscribe": "bun run src/subscribe.ts",
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
-    "@elysiajs/eden": "^1.4.5",
     "@orpc/client": "^1.12.3",
     "@orpc/server": "^1.12.3",
-    "@zirc3/server": "workspace:*",
     "@zirc3/server-orpc": "workspace:*",
     "citty": "^0.1.6"
   },
   "devDependencies": {
-    "typescript": "^5.9.3",
-    "@types/bun": "^1.3.4"
+    "@types/bun": "^1.3.4",
+    "typescript": "^5.9.3"
   }
 }
