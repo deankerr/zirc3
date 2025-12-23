@@ -49,4 +49,7 @@ coverage
 tmp
 temp
 
+# Local data
+data
+
 config.json

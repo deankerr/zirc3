@@ -3,6 +3,9 @@ linker = "isolated"
 minimumReleaseAge = 259200
 minimumReleaseAgeExcludes = ["elysia", "@elysiajs/eden"]
 
+[install.scopes]
+jsr = "https://npm.jsr.io"
+
 [console]
 depth = 6
 

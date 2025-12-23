@@ -2,9 +2,10 @@ import { cors } from "@elysiajs/cors";
 import { RPCHandler } from "@orpc/server/fetch";
 import { Elysia } from "elysia";
 import { commandsRouter } from "./commands";
+import { closeDb, openDb } from "./db";
 import { eventsRouter } from "./events";
 import { messagesRouter } from "./messages";
-import { networksRouter, shutdown } from "./networks";
+import { loadNetworks, networksRouter, shutdown } from "./networks";
 
 export const router = {
   networks: networksRouter,
@@ -30,12 +31,17 @@ export const app = new Elysia()
   .get("/health", () => ({ status: "ok" }));
 
 if (import.meta.main) {
+  // * Initialize database and load persisted networks
+  await openDb();
+  await loadNetworks();
+
   app.listen(3001);
   console.log("server-orpc listening on http://localhost:3001");
 
   const handleSignal = async (signal: string) => {
     console.log(`\n${signal} received, shutting down...`);
     await shutdown();
+    closeDb();
     console.log("Shutdown complete");
     process.exit(0);
   };

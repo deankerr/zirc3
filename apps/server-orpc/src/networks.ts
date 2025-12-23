@@ -2,6 +2,11 @@ import { implement } from "@orpc/server";
 import { IRCClient } from "@zirc3/irc-client";
 import type { z } from "zod";
 import { contract, type NetworkConfig, type NetworkState } from "./contract";
+import {
+  deleteNetworkConfig,
+  getAllNetworkConfigs,
+  putNetworkConfig,
+} from "./db";
 import { publisher } from "./events";
 import { storeMessage } from "./messages";
 
@@ -81,13 +86,17 @@ function createClient(config: NetworkConfigType): StoredNetwork {
 
   // * Track connection status and publish state changes
   client.on("connecting", () => {
-    console.log(`[networks] ${config.network}: connecting to ${config.host}:${config.port}`);
+    console.log(
+      `[networks] ${config.network}: connecting to ${config.host}:${config.port}`
+    );
     stored.status = "connecting";
     publishState(stored);
   });
 
   client.on("registered", () => {
-    console.log(`[networks] ${config.network}: registered as ${client.user.nick}`);
+    console.log(
+      `[networks] ${config.network}: registered as ${client.user.nick}`
+    );
     stored.status = "connected";
     publishState(stored);
   });
@@ -99,7 +108,10 @@ function createClient(config: NetworkConfigType): StoredNetwork {
   });
 
   client.on("socket close", (error) => {
-    console.log(`[networks] ${config.network}: socket closed`, error ? { error } : "");
+    console.log(
+      `[networks] ${config.network}: socket closed`,
+      error ? { error } : ""
+    );
   });
 
   client.on("irc error", (error) => {
@@ -108,15 +120,21 @@ function createClient(config: NetworkConfigType): StoredNetwork {
 
   // * Publish state on channel/user changes
   client.on("join", (event) => {
-    console.log(`[networks] ${config.network}: ${event.nick} joined ${event.channel}`);
+    console.log(
+      `[networks] ${config.network}: ${event.nick} joined ${event.channel}`
+    );
     publishState(stored);
   });
   client.on("part", (event) => {
-    console.log(`[networks] ${config.network}: ${event.nick} parted ${event.channel}`);
+    console.log(
+      `[networks] ${config.network}: ${event.nick} parted ${event.channel}`
+    );
     publishState(stored);
   });
   client.on("kick", (event) => {
-    console.log(`[networks] ${config.network}: ${event.kicked} kicked from ${event.channel} by ${event.nick}`);
+    console.log(
+      `[networks] ${config.network}: ${event.kicked} kicked from ${event.channel} by ${event.nick}`
+    );
     publishState(stored);
   });
   client.on("quit", (event) => {
@@ -124,19 +142,28 @@ function createClient(config: NetworkConfigType): StoredNetwork {
     publishState(stored);
   });
   client.on("nick", (event) => {
-    console.log(`[networks] ${config.network}: ${event.nick} -> ${event.new_nick}`);
+    console.log(
+      `[networks] ${config.network}: ${event.nick} -> ${event.new_nick}`
+    );
     publishState(stored);
   });
   client.on("topic", (event) => {
-    console.log(`[networks] ${config.network}: topic for ${event.channel} set to "${event.topic}"`);
+    console.log(
+      `[networks] ${config.network}: topic for ${event.channel} set to "${event.topic}"`
+    );
     publishState(stored);
   });
   client.on("userlist", (event) => {
-    console.log(`[networks] ${config.network}: userlist for ${event.channel} (${event.users.length} users)`);
+    console.log(
+      `[networks] ${config.network}: userlist for ${event.channel} (${event.users.length} users)`
+    );
     publishState(stored);
   });
   client.on("mode", (event) => {
-    console.log(`[networks] ${config.network}: mode ${event.target}`, event.modes);
+    console.log(
+      `[networks] ${config.network}: mode ${event.target}`,
+      event.modes
+    );
     publishState(stored);
   });
 
@@ -150,6 +177,22 @@ function createClient(config: NetworkConfigType): StoredNetwork {
   return stored;
 }
 
+// * Load networks from db on startup
+
+export async function loadNetworks() {
+  const configs = await getAllNetworkConfigs();
+  console.log(`[networks] loading ${configs.length} networks from db`);
+
+  for (const config of configs) {
+    const stored = createClient(config);
+    networks.set(config.network, stored);
+
+    if (config.enabled) {
+      stored.client.connect();
+    }
+  }
+}
+
 // * oRPC handlers
 
 const os = implement(contract);
@@ -158,9 +201,12 @@ const list = os.networks.list.handler(() =>
   [...networks.values()].map(getNetworkState)
 );
 
-const put = os.networks.put.handler(({ input }) => {
+const put = os.networks.put.handler(async ({ input }) => {
   const { config } = input;
   const name = config.network;
+
+  // * persist config to db
+  await putNetworkConfig(config);
 
   // * disconnect and remove existing client if present
   const existing = networks.get(name);
@@ -180,11 +226,14 @@ const put = os.networks.put.handler(({ input }) => {
   return getNetworkState(stored);
 });
 
-const del = os.networks.delete.handler(({ input }) => {
+const del = os.networks.delete.handler(async ({ input }) => {
   const stored = networks.get(input.name);
   if (!stored) {
     return { success: false };
   }
+
+  // * remove from db
+  await deleteNetworkConfig(input.name);
 
   stored.client.quit();
   networks.delete(input.name);

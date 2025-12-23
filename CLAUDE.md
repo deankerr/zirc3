@@ -1,6 +1,6 @@
 # zirc3
 
-This is essentially a next-generation version of The Lounge IRC - a multi-tenant IRC bouncer Elysia server, which is accessed via a SolidJS web app.
+This is essentially a next-generation version of The Lounge IRC - a IRC bouncer + Elysia + oRPC web server, which is accessed via a SolidJS web app and whatever else you would like to hit the endpoints.
 
 - Currently we only handle single user with no auth, while implementing the core functionality.
 - IRC events will eventually be persisted to db. We avoid using irc-framework's opinionated event helpers as they're not suited to this use case.
@@ -85,3 +85,7 @@ subscribe [--json]
 # IRC
 
 - `ngircd` is running locally for demoing functionality, host: `localhost`, port: `6667`
+
+# oRPC
+
+- RPC endpoints are not standard REST API and shouldn't be hit manually via something like cURL. Use the CLI package - upgrade its functionality when necessary.

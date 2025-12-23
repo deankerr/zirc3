@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@elysiajs/cors": "^1.4.0",
+    "@jsr/cross__kv": "^0.18.0",
     "@orpc/contract": "^1.5.0",
     "@orpc/experimental-publisher": "^1.12.3",
     "@orpc/server": "^1.5.0",
