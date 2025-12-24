@@ -20,7 +20,9 @@ function createInitialStore(): Store {
   };
 }
 
-export type CommandResult = { success: true } | { success: false; error?: string };
+export type CommandResult =
+  | { success: true }
+  | { success: false; error?: string };
 export type SendCommand = (cmd: IRCCommandType) => Promise<CommandResult>;
 
 type StoreContextValue = {

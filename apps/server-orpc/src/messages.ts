@@ -1,7 +1,7 @@
-import { implement } from "@orpc/server";
 import type { z } from "zod";
-import { contract, type IRCMessage } from "./contract";
-import { getMessages, storeMessage as dbStoreMessage } from "./db";
+import { os } from "./base";
+import type { IRCMessage } from "./contract";
+import { storeMessage as dbStoreMessage, getMessages } from "./db";
 
 type IRCMessageType = z.infer<typeof IRCMessage>;
 
@@ -14,15 +14,14 @@ export function storeMessage(message: IRCMessageType) {
 
 // * oRPC handler
 
-const os = implement(contract);
-
-const list = os.messages.list.handler(({ input }) =>
-  getMessages({
+const list = os.messages.list.handler(async ({ input }) => {
+  console.log("[messages.list]", input);
+  return await getMessages({
     network: input.network,
     target: input.target,
     before: input.before,
     limit: input.limit,
-  })
-);
+  });
+});
 
 export const messagesRouter = { list };

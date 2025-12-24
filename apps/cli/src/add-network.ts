@@ -38,6 +38,7 @@ const main = defineCommand({
       default: "#test",
     },
   },
+  // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: args
   async run({ args }) {
     // biome-ignore lint/suspicious/noExplicitAny: server validates
     let config: any;

@@ -16,6 +16,8 @@ import {
 import { StoreProvider, SYSTEM_BUFFER_ID, useStore } from "@/store";
 import { type Actions, createActions } from "@/store/actions";
 
+const INITIAL_MESSAGE_LIMIT = 50;
+
 // biome-ignore lint/complexity/noBannedTypes: TanStack Router convention
 export type RouterContext = {};
 
@@ -46,6 +48,47 @@ function RootComponent() {
   );
 }
 
+type BufferTarget = { network: string; target: string; bufferId: string };
+
+function addSystemLine(actions: Actions, content: string) {
+  actions.addLine(SYSTEM_BUFFER_ID, {
+    id: crypto.randomUUID(),
+    timestamp: Date.now(),
+    type: "system",
+    source: "client",
+    content,
+  });
+}
+
+async function fetchInitialMessages(actions: Actions, buffers: BufferTarget[]) {
+  if (buffers.length === 0) return;
+
+  await Promise.all(
+    buffers.map(async ({ network, target, bufferId }) => {
+      const label =
+        target === "*" ? `${network} (server)` : `${network}/${target}`;
+      try {
+        const { messages } = await client.messages.list({
+          network,
+          target,
+          limit: INITIAL_MESSAGE_LIMIT,
+        });
+        for (const msg of messages) {
+          const lineMsg = { ...msg, timestamp: msg.timestamp.getTime() };
+          actions.addLine(bufferId, ircMessageToLine(lineMsg));
+        }
+        addSystemLine(actions, `${label}: loaded ${messages.length} messages`);
+      } catch (err) {
+        console.error("[messages] fetch failed:", { network, target, err });
+        addSystemLine(
+          actions,
+          `${label}: failed to load history - ${String(err)}`
+        );
+      }
+    })
+  );
+}
+
 function handleIrcMessage(actions: Actions, msg: IRCMessageType) {
   const bufferId = getMessageBufferId(msg);
   const target = msg.target ?? "*";
@@ -72,6 +115,17 @@ function handleStateMessage(actions: Actions, state: NetworkStateType) {
     network: state.network,
     target: "*",
   });
+
+  // Ensure channel buffers exist for all joined channels
+  for (const channelName of Object.keys(state.channels)) {
+    const bufferId = `${state.network}:${channelName.toLowerCase()}`;
+    actions.ensureBuffer({
+      id: bufferId,
+      type: "channel",
+      network: state.network,
+      target: channelName,
+    });
+  }
 
   // Sync state (map field name)
   actions.syncNetworkState({
@@ -103,6 +157,28 @@ async function connectToServer(actions: Actions, signal: AbortSignal) {
       source: "client",
       content: "Connected to server",
     });
+
+    // * Collect all buffers to fetch initial messages for
+    const buffersToFetch: BufferTarget[] = [];
+    for (const network of networks) {
+      // Server buffer
+      buffersToFetch.push({
+        network: network.network,
+        target: "*",
+        bufferId: `${network.network}:*`,
+      });
+      // Channel buffers
+      for (const channelName of Object.keys(network.channels)) {
+        buffersToFetch.push({
+          network: network.network,
+          target: channelName,
+          bufferId: `${network.network}:${channelName.toLowerCase()}`,
+        });
+      }
+    }
+
+    // * Fetch initial messages in parallel (don't block subscription)
+    fetchInitialMessages(actions, buffersToFetch);
 
     // Subscribe to events
     const iterator = await client.subscribe({ signal });

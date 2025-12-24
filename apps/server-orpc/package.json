@@ -10,18 +10,15 @@
   },
   "scripts": {
     "check-types": "tsc -b",
-    "dev": "bun run src/index.ts"
+    "dev": "bun run src/serve.ts"
   },
   "dependencies": {
-    "@elysiajs/cors": "^1.4.0",
     "@jsr/cross__kv": "^0.18.0",
     "@orpc/contract": "^1.5.0",
     "@orpc/experimental-publisher": "^1.12.3",
     "@orpc/server": "^1.5.0",
     "@zirc3/irc-client": "workspace:*",
-    "elysia": "^1.4.19",
     "irc-framework": "^4.14.0",
-    "pino": "^10.1.0",
     "zod": "^4.1.13"
   },
   "devDependencies": {

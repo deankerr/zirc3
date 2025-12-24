@@ -2,7 +2,6 @@ import { createORPCClient } from "@orpc/client";
 import { RPCLink } from "@orpc/client/fetch";
 import type { RouterClient } from "@orpc/server";
 import type { router } from "@zirc3/server-orpc";
-import type { z } from "zod";
 import type {
   ChannelMember,
   ChannelState,
@@ -11,6 +10,7 @@ import type {
   NetworkState,
   SubscribeEvent,
 } from "@zirc3/server-orpc/contract";
+import type { z } from "zod";
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL ?? "http://localhost:3001";
 

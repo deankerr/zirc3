@@ -1,6 +1,5 @@
-import { cors } from "@elysiajs/cors";
 import { RPCHandler } from "@orpc/server/fetch";
-import { Elysia } from "elysia";
+import { CORSPlugin } from "@orpc/server/plugins";
 import { commandsRouter } from "./commands";
 import { closeDb, openDb } from "./db";
 import { eventsRouter } from "./events";
@@ -14,38 +13,43 @@ export const router = {
   ...eventsRouter,
 };
 
-const handler = new RPCHandler(router);
+const handler = new RPCHandler(router, {
+  plugins: [new CORSPlugin()],
+});
 
-export const app = new Elysia()
-  .use(cors())
-  .all(
-    "/rpc/*",
-    async ({ request }) => {
-      const { response } = await handler.handle(request, {
-        prefix: "/rpc",
-      });
-      return response ?? new Response("Not Found", { status: 404 });
-    },
-    { parse: "none" }
-  )
-  .get("/health", () => ({ status: "ok" }));
+await openDb();
+await loadNetworks();
 
-if (import.meta.main) {
-  // * Initialize database and load persisted networks
-  await openDb();
-  await loadNetworks();
+const server = Bun.serve({
+  port: 3001,
+  async fetch(request: Request) {
+    // Health check
+    const url = new URL(request.url);
+    if (url.pathname === "/health") {
+      return Response.json({ status: "ok" });
+    }
 
-  app.listen(3001);
-  console.log("server-orpc listening on http://localhost:3001");
+    const { matched, response } = await handler.handle(request, {
+      prefix: "/rpc",
+    });
 
-  const handleSignal = async (signal: string) => {
-    console.log(`\n${signal} received, shutting down...`);
-    await shutdown();
-    closeDb();
-    console.log("Shutdown complete");
-    process.exit(0);
-  };
+    if (matched) {
+      return response;
+    }
 
-  process.on("SIGTERM", () => handleSignal("SIGTERM"));
-  process.on("SIGINT", () => handleSignal("SIGINT"));
-}
+    return new Response("Not Found", { status: 404 });
+  },
+});
+
+console.log(`server-orpc listening on http://localhost:${server.port}`);
+
+const handleSignal = async (signal: string) => {
+  console.log(`\n${signal} received, shutting down...`);
+  await shutdown();
+  closeDb();
+  console.log("Shutdown complete");
+  process.exit(0);
+};
+
+process.on("SIGTERM", () => handleSignal("SIGTERM"));
+process.on("SIGINT", () => handleSignal("SIGINT"));

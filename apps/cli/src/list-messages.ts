@@ -2,7 +2,7 @@ import { client } from "./orpc-client";
 
 const [network, target] = process.argv.slice(2);
 
-if (!network || !target) {
+if (!(network && target)) {
   console.log("Usage: bun run list-messages <network> <target>");
   console.log("Example: bun run list-messages local #test");
   process.exit(1);

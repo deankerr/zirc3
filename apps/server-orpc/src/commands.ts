@@ -1,6 +1,5 @@
-import { implement } from "@orpc/server";
 import type { IRCClient } from "@zirc3/irc-client";
-import { contract } from "./contract";
+import { os } from "./base";
 import { getClient } from "./networks";
 
 type CommandError = { success: false; error: string };
@@ -75,8 +74,6 @@ const handlers: Record<string, CommandHandler> = {
     return null;
   },
 };
-
-const os = implement(contract);
 
 const send = os.commands.send.handler(({ input }) => {
   const { network, command, args } = input;

@@ -1,7 +1,7 @@
-import { implement } from "@orpc/server";
 import { IRCClient } from "@zirc3/irc-client";
 import type { z } from "zod";
-import { contract, type NetworkConfig, type NetworkState } from "./contract";
+import { os } from "./base";
+import type { NetworkConfig, NetworkState } from "./contract";
 import {
   deleteNetworkConfig,
   getAllNetworkConfigs,
@@ -194,8 +194,6 @@ export async function loadNetworks() {
 }
 
 // * oRPC handlers
-
-const os = implement(contract);
 
 const list = os.networks.list.handler(() =>
   [...networks.values()].map(getNetworkState)
