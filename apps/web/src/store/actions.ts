@@ -1,5 +1,9 @@
 import type { SetStoreFunction } from "solid-js/store";
-import type { ChannelStateType } from "@/api";
+import type {
+  ChannelStateType,
+  NetworkConfigType,
+  NetworkStateType,
+} from "@/api";
 import type {
   BufferLine,
   BufferState,
@@ -55,36 +59,6 @@ export function createActions(setStore: SetStoreFunction<Store>) {
       setStore("ui", "activeBuffer", id);
     },
 
-    updateNetwork(name: string, partial: Partial<NetworkState>) {
-      setStore("networks", name, (current) => {
-        if (!current) {
-          return {
-            name,
-            status: "disconnected",
-            channels: {},
-            ...partial,
-          } as NetworkState;
-        }
-        return { ...current, ...partial };
-      });
-    },
-
-    ensureNetwork(name: string) {
-      setStore("networks", (networks) => {
-        if (networks[name]) {
-          return networks;
-        }
-        return {
-          ...networks,
-          [name]: {
-            name,
-            status: "disconnected",
-            channels: {},
-          } satisfies NetworkState,
-        };
-      });
-    },
-
     updateChannel(
       network: string,
       channelName: string,
@@ -97,33 +71,41 @@ export function createActions(setStore: SetStoreFunction<Store>) {
       }));
     },
 
-    setNetworks(names: string[]) {
-      setStore("networks", (current) => {
-        const updated: Record<string, NetworkState> = {};
-        for (const name of names) {
-          updated[name] = current[name] ?? {
-            name,
-            status: "disconnected",
-            channels: {},
-          };
-        }
-        return updated;
-      });
-    },
-
     // * Sync full network state from server
     syncNetworkState(state: {
       name: string;
       status: "connecting" | "connected" | "disconnected";
       user?: UserInfo;
       channels: Record<string, ChannelStateType>;
+      config: NetworkConfigType;
     }) {
       setStore("networks", state.name, {
         name: state.name,
         status: state.status,
         user: state.user,
         channels: state.channels,
+        config: state.config,
       });
+    },
+
+    // * Sync all networks from API response (replaces store state)
+    syncAllNetworks(networks: NetworkStateType[]) {
+      const updated: Record<string, NetworkState> = {};
+      for (const n of networks) {
+        updated[n.network] = {
+          name: n.network,
+          status: n.status,
+          user: n.user,
+          channels: n.channels,
+          config: n.config,
+        };
+      }
+      setStore("networks", updated);
+    },
+
+    // * Remove a network from the store
+    removeNetwork(name: string) {
+      setStore("networks", name, undefined as unknown as NetworkState);
     },
   };
 }

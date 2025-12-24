@@ -1,5 +1,6 @@
 import { useStore } from "@/store";
 import type { ConnectionStatus } from "@/store/types";
+import { NetworkManager } from "./network-manager/network-manager";
 
 function getStatusColor(status: ConnectionStatus): string {
   switch (status) {
@@ -30,6 +31,7 @@ export function Header() {
     <header class="flex items-center justify-between border-[var(--color-border)] border-b bg-[var(--color-bg-secondary)] px-4 py-2">
       <div class="flex items-center gap-3">
         <span class="font-bold text-[var(--color-accent-secondary)]">zirc</span>
+        <NetworkManager />
       </div>
       <div class="flex items-center gap-2">
         <div

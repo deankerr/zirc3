@@ -1,4 +1,4 @@
-import type { ChannelStateType } from "@/api";
+import type { ChannelStateType, NetworkConfigType } from "@/api";
 
 export type LineType =
   | "message"
@@ -47,6 +47,7 @@ export type NetworkState = {
   status: "connecting" | "connected" | "disconnected";
   user?: UserInfo;
   channels: Record<string, ChannelStateType>;
+  config: NetworkConfigType;
 };
 
 export type ConnectionStatus = "disconnected" | "connecting" | "connected";

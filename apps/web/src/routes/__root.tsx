@@ -133,6 +133,7 @@ function handleStateMessage(actions: Actions, state: NetworkStateType) {
     status: state.status,
     user: state.user,
     channels: state.channels,
+    config: state.config,
   });
 }
 
@@ -140,11 +141,8 @@ async function connectToServer(actions: Actions, signal: AbortSignal) {
   actions.setConnectionStatus("connecting");
 
   try {
-    // Fetch initial network list
+    // Fetch initial network list and sync state
     const networks = await client.networks.list();
-    actions.setNetworks(networks.map((n) => n.network));
-
-    // Initialize state for each network
     for (const network of networks) {
       handleStateMessage(actions, network);
     }

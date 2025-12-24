@@ -24,7 +24,9 @@
       "mcp__chrome-devtools__fill",
       "mcp__chrome-devtools__press_key",
       "Bash(echo:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "WebFetch(domain:kobalte.dev)",
+      "mcp__exa__get_code_context_exa"
     ]
   }
 }

@@ -7,6 +7,7 @@ import type {
   ChannelState,
   IRCCommand,
   IRCMessage,
+  NetworkConfig,
   NetworkState,
   SubscribeEvent,
 } from "@zirc3/server-orpc/contract";
@@ -22,6 +23,7 @@ export const client: RouterClient<typeof router> = createORPCClient(link);
 
 // * Type exports
 export type IRCMessageType = z.infer<typeof IRCMessage>;
+export type NetworkConfigType = z.infer<typeof NetworkConfig>;
 export type NetworkStateType = z.infer<typeof NetworkState>;
 export type SubscribeEventType = z.infer<typeof SubscribeEvent>;
 export type ChannelStateType = z.infer<typeof ChannelState>;
