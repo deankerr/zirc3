@@ -10,13 +10,13 @@ type DialogProps = ParentProps<{
 
 export function Dialog(props: DialogProps) {
   return (
-    <KobalteDialog open={props.open} onOpenChange={props.onOpenChange}>
+    <KobalteDialog onOpenChange={props.onOpenChange} open={props.open}>
       <KobalteDialog.Portal>
         <KobalteDialog.Overlay class="fixed inset-0 z-40 bg-black/60" />
         <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <KobalteDialog.Content class="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-secondary)] p-6 shadow-xl scrollbar-thin">
+          <KobalteDialog.Content class="scrollbar-thin max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-secondary)] p-6 shadow-xl">
             <div class="mb-4 flex items-center justify-between">
-              <KobalteDialog.Title class="text-lg font-semibold text-[var(--color-text-primary)]">
+              <KobalteDialog.Title class="font-semibold text-[var(--color-text-primary)] text-lg">
                 {props.title}
               </KobalteDialog.Title>
               <KobalteDialog.CloseButton class="rounded p-1 text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text-primary)]">

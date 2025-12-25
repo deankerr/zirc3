@@ -34,11 +34,10 @@
       },
       "style": {
         "useConsistentTypeDefinitions": "off",
-        "useBlockStatements": "off"
+        "useBlockStatements": "off",
+        "noNestedTernary": "off"
       },
-      "nursery": {
-        "noShadow": "off"
-      }
+      "nursery": "off"
     }
   },
   "overrides": [

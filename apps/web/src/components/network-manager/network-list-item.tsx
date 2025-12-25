@@ -30,7 +30,7 @@ export function NetworkListItem(props: NetworkListItemProps) {
           <div class="font-medium text-[var(--color-text-primary)]">
             {props.network.name}
           </div>
-          <div class="text-xs text-[var(--color-text-muted)]">
+          <div class="text-[var(--color-text-muted)] text-xs">
             {props.network.config.host}:{props.network.config.port}
             {props.network.config.tls && " (TLS)"}
           </div>
@@ -38,18 +38,18 @@ export function NetworkListItem(props: NetworkListItemProps) {
       </div>
       <div class="flex gap-1">
         <button
-          type="button"
-          onClick={props.onEdit}
           class="rounded p-2 text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text-primary)]"
+          onClick={props.onEdit}
           title="Edit network"
+          type="button"
         >
           <Pencil size={16} />
         </button>
         <button
-          type="button"
-          onClick={props.onDelete}
           class="rounded p-2 text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-line-error)]"
+          onClick={props.onDelete}
           title="Delete network"
+          type="button"
         >
           <Trash2 size={16} />
         </button>

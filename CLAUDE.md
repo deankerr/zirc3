@@ -38,17 +38,6 @@ console.log(`Creating client "${name}" on ${host}:${port}`);
 - Errors with the full error object: `console.error("[module] error:", err)`
 - Incoming commands/requests with their args
 
-**What NOT to do:**
-- Don't extract individual fields into formatted strings - log the object
-- Don't create "pretty" multi-line banners or decorative output
-- Don't log routine success cases ("message sent successfully")
-- Don't wrap in try/catch just to log - let errors bubble up with stack traces
-
-**Levels:**
-- `console.log` - normal operations worth knowing about
-- `console.error` - actual errors
-- Skip debug-level logging for now (add later if needed)
-
 ## Monorepo
 
 **Apps:**

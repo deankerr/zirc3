@@ -1,6 +1,7 @@
 import { mkdirSync } from "node:fs";
+import type IRC from "irc-framework";
 import { formatMessage } from "./format";
-import type { IRCClientLike, IRCMessage, LoggerOptions } from "./types";
+import type { IRCMessage, LoggerOptions } from "./types";
 
 type Writer = ReturnType<typeof Bun.file.prototype.writer>;
 
@@ -20,7 +21,7 @@ function getWriter(dest: Destination): Writer {
 }
 
 export class IRCLogger {
-  private readonly client: IRCClientLike;
+  private readonly client: IRC.Client;
   private readonly targets = new Map<string, Destination>();
   private server?: Destination;
   private raw?: Destination;
@@ -28,7 +29,7 @@ export class IRCLogger {
   readonly dir: string;
   readonly console: boolean;
 
-  constructor(client: IRCClientLike, options: LoggerOptions = {}) {
+  constructor(client: IRC.Client, options: LoggerOptions = {}) {
     this.client = client;
     this.dir = options.dir ?? "./logs";
     this.console = options.console ?? false;
@@ -45,9 +46,7 @@ export class IRCLogger {
   }
 
   private getHostname(): string {
-    return (
-      (this.client as { options?: { host?: string } }).options?.host ?? "server"
-    );
+    return this.client.options.host ?? "server";
   }
 
   private handleMessage(msg: IRCMessage) {

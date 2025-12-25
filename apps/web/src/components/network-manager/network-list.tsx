@@ -12,19 +12,19 @@ export function NetworkList(props: NetworkListProps) {
   return (
     <div class="space-y-2">
       <Show
-        when={props.networks.length > 0}
         fallback={
           <div class="py-4 text-center text-[var(--color-text-muted)]">
             No networks configured
           </div>
         }
+        when={props.networks.length > 0}
       >
         <For each={props.networks}>
           {(network) => (
             <NetworkListItem
               network={network}
-              onEdit={() => props.onEdit(network)}
               onDelete={() => props.onDelete(network.name)}
+              onEdit={() => props.onEdit(network)}
             />
           )}
         </For>

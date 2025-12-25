@@ -86,22 +86,22 @@ export function NetworkManager() {
   return (
     <>
       <button
-        type="button"
-        onClick={handleOpen}
         class="rounded p-1 text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text-primary)]"
+        onClick={handleOpen}
         title="Manage Networks"
+        type="button"
       >
         <Settings size={18} />
       </button>
 
-      <Dialog open={open()} onOpenChange={setOpen} title={modalTitle()}>
+      <Dialog onOpenChange={setOpen} open={open()} title={modalTitle()}>
         <Switch>
           <Match when={view() === "list"}>
             <div class="mb-4">
               <button
-                type="button"
+                class="flex w-full items-center justify-center gap-2 rounded border border-[var(--color-border)] border-dashed py-2 text-[var(--color-text-secondary)] text-sm hover:border-[var(--color-accent-primary)] hover:text-[var(--color-accent-primary)]"
                 onClick={handleCreateNew}
-                class="flex w-full items-center justify-center gap-2 rounded border border-dashed border-[var(--color-border)] py-2 text-sm text-[var(--color-text-secondary)] hover:border-[var(--color-accent-primary)] hover:text-[var(--color-accent-primary)]"
+                type="button"
               >
                 <Plus size={16} />
                 Add New Network
@@ -109,15 +109,15 @@ export function NetworkManager() {
             </div>
             <NetworkList
               networks={networksList()}
-              onEdit={handleEdit}
               onDelete={handleDelete}
+              onEdit={handleEdit}
             />
           </Match>
 
           <Match when={view() === "create"}>
             <NetworkForm
-              onSuccess={handleFormSuccess}
               onCancel={handleFormCancel}
+              onSuccess={handleFormSuccess}
             />
           </Match>
 
@@ -127,8 +127,8 @@ export function NetworkManager() {
                 <NetworkForm
                   initialValues={getFormInitialValues(network())}
                   isEdit
-                  onSuccess={handleFormSuccess}
                   onCancel={handleFormCancel}
+                  onSuccess={handleFormSuccess}
                 />
               )}
             </Show>

@@ -1,3 +1,4 @@
+/// <reference path="./irc-framework.d.ts" />
 import type IRC from "irc-framework";
 
 export type MessageContext = "channel" | "dm" | "server";
@@ -34,6 +35,3 @@ declare module "irc-framework" {
     emit(event: "parsed_message", message: IRCMessage): boolean;
   }
 }
-
-// * type for modules that accept any IRC client with parsed_message support
-export type IRCClientLike = IRC.Client;

@@ -83,20 +83,20 @@ export function NetworkForm(props: NetworkFormProps) {
     >
       {/* * Connection Section */}
       <div class="mb-4">
-        <h3 class="mb-2 text-sm font-medium text-[var(--color-accent-secondary)]">
+        <h3 class="mb-2 font-medium text-[var(--color-accent-secondary)] text-sm">
           Connection
         </h3>
 
         <form.Field name="network">
           {(field) => (
             <TextField
+              disabled={props.isEdit}
               label="Network Name"
               name={field().name}
-              value={field().state.value}
-              onChange={field().handleChange}
               onBlur={field().handleBlur}
+              onChange={field().handleChange}
               placeholder="libera"
-              disabled={props.isEdit}
+              value={field().state.value}
             />
           )}
         </form.Field>
@@ -106,10 +106,10 @@ export function NetworkForm(props: NetworkFormProps) {
             <TextField
               label="Host"
               name={field().name}
-              value={field().state.value}
-              onChange={field().handleChange}
               onBlur={field().handleBlur}
+              onChange={field().handleChange}
               placeholder="irc.libera.chat"
+              value={field().state.value}
             />
           )}
         </form.Field>
@@ -119,10 +119,10 @@ export function NetworkForm(props: NetworkFormProps) {
             <TextField
               label="Port"
               name={field().name}
+              onBlur={field().handleBlur}
+              onChange={(v) => field().handleChange(Number(v) || 6667)}
               type="number"
               value={String(field().state.value)}
-              onChange={(v) => field().handleChange(Number(v) || 6667)}
-              onBlur={field().handleBlur}
             />
           )}
         </form.Field>
@@ -130,8 +130,8 @@ export function NetworkForm(props: NetworkFormProps) {
         <form.Field name="tls">
           {(field) => (
             <CheckboxField
-              label="Use TLS/SSL"
               checked={field().state.value}
+              label="Use TLS/SSL"
               onChange={field().handleChange}
             />
           )}
@@ -140,10 +140,10 @@ export function NetworkForm(props: NetworkFormProps) {
         <form.Field name="rejectUnauthorized">
           {(field) => (
             <CheckboxField
-              label="Reject Unauthorized Certificates"
               checked={field().state.value}
-              onChange={field().handleChange}
               description="Disable for self-signed certificates"
+              label="Reject Unauthorized Certificates"
+              onChange={field().handleChange}
             />
           )}
         </form.Field>
@@ -153,10 +153,10 @@ export function NetworkForm(props: NetworkFormProps) {
             <TextField
               label="Server Password (optional)"
               name={field().name}
+              onBlur={field().handleBlur}
+              onChange={field().handleChange}
               type="password"
               value={field().state.value}
-              onChange={field().handleChange}
-              onBlur={field().handleBlur}
             />
           )}
         </form.Field>
@@ -164,7 +164,7 @@ export function NetworkForm(props: NetworkFormProps) {
 
       {/* * Identity Section */}
       <div class="mb-4">
-        <h3 class="mb-2 text-sm font-medium text-[var(--color-accent-secondary)]">
+        <h3 class="mb-2 font-medium text-[var(--color-accent-secondary)] text-sm">
           Identity
         </h3>
 
@@ -173,10 +173,10 @@ export function NetworkForm(props: NetworkFormProps) {
             <TextField
               label="Nickname"
               name={field().name}
-              value={field().state.value}
-              onChange={field().handleChange}
               onBlur={field().handleBlur}
+              onChange={field().handleChange}
               placeholder="zirc_user"
+              value={field().state.value}
             />
           )}
         </form.Field>
@@ -186,10 +186,10 @@ export function NetworkForm(props: NetworkFormProps) {
             <TextField
               label="Username (optional)"
               name={field().name}
-              value={field().state.value}
-              onChange={field().handleChange}
               onBlur={field().handleBlur}
+              onChange={field().handleChange}
               placeholder="Defaults to nickname"
+              value={field().state.value}
             />
           )}
         </form.Field>
@@ -199,9 +199,9 @@ export function NetworkForm(props: NetworkFormProps) {
             <TextField
               label="Real Name / GECOS (optional)"
               name={field().name}
-              value={field().state.value}
-              onChange={field().handleChange}
               onBlur={field().handleBlur}
+              onChange={field().handleChange}
+              value={field().state.value}
             />
           )}
         </form.Field>
@@ -209,17 +209,17 @@ export function NetworkForm(props: NetworkFormProps) {
 
       {/* * Behavior Section */}
       <div class="mb-4">
-        <h3 class="mb-2 text-sm font-medium text-[var(--color-accent-secondary)]">
+        <h3 class="mb-2 font-medium text-[var(--color-accent-secondary)] text-sm">
           Behavior
         </h3>
 
         <form.Field name="enabled">
           {(field) => (
             <CheckboxField
-              label="Enabled"
               checked={field().state.value}
-              onChange={field().handleChange}
               description="Auto-connect on server startup"
+              label="Enabled"
+              onChange={field().handleChange}
             />
           )}
         </form.Field>
@@ -227,10 +227,10 @@ export function NetworkForm(props: NetworkFormProps) {
         <form.Field name="autoReconnect">
           {(field) => (
             <CheckboxField
-              label="Auto-Reconnect"
               checked={field().state.value}
-              onChange={field().handleChange}
               description="Reconnect automatically if disconnected"
+              label="Auto-Reconnect"
+              onChange={field().handleChange}
             />
           )}
         </form.Field>
@@ -240,10 +240,10 @@ export function NetworkForm(props: NetworkFormProps) {
             <TextField
               label="Max Reconnect Retries"
               name={field().name}
+              onBlur={field().handleBlur}
+              onChange={(v) => field().handleChange(Number(v) || 30)}
               type="number"
               value={String(field().state.value)}
-              onChange={(v) => field().handleChange(Number(v) || 30)}
-              onBlur={field().handleBlur}
             />
           )}
         </form.Field>
@@ -253,10 +253,10 @@ export function NetworkForm(props: NetworkFormProps) {
             <TextField
               label="Auto-Join Channels"
               name={field().name}
-              value={field().state.value}
-              onChange={field().handleChange}
               onBlur={field().handleBlur}
+              onChange={field().handleChange}
               placeholder="#channel1, #channel2"
+              value={field().state.value}
             />
           )}
         </form.Field>
@@ -266,9 +266,9 @@ export function NetworkForm(props: NetworkFormProps) {
             <TextField
               label="Quit Message (optional)"
               name={field().name}
-              value={field().state.value}
-              onChange={field().handleChange}
               onBlur={field().handleBlur}
+              onChange={field().handleChange}
+              value={field().state.value}
             />
           )}
         </form.Field>
@@ -277,18 +277,18 @@ export function NetworkForm(props: NetworkFormProps) {
       {/* * Actions */}
       <div class="mt-6 flex justify-end gap-2">
         <button
-          type="button"
+          class="rounded px-4 py-2 text-[var(--color-text-secondary)] text-sm hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text-primary)]"
           onClick={props.onCancel}
-          class="rounded px-4 py-2 text-sm text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text-primary)]"
+          type="button"
         >
           Cancel
         </button>
         <form.Subscribe selector={(state) => state.isSubmitting}>
           {(isSubmitting) => (
             <button
-              type="submit"
+              class="rounded bg-[var(--color-accent-primary)] px-4 py-2 text-[var(--color-bg-primary)] text-sm hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
               disabled={isSubmitting()}
-              class="rounded bg-[var(--color-accent-primary)] px-4 py-2 text-sm text-[var(--color-bg-primary)] hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+              type="submit"
             >
               {isSubmitting()
                 ? "Saving..."

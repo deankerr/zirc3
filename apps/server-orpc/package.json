@@ -10,7 +10,7 @@
   },
   "scripts": {
     "check-types": "tsc -b",
-    "dev": "bun run src/serve.ts"
+    "dev": "bun run src/index.ts"
   },
   "dependencies": {
     "@jsr/cross__kv": "^0.18.0",
@@ -18,7 +18,6 @@
     "@orpc/experimental-publisher": "^1.12.3",
     "@orpc/server": "^1.5.0",
     "@zirc3/irc-client": "workspace:*",
-    "irc-framework": "^4.14.0",
     "zod": "^4.1.13"
   },
   "devDependencies": {
