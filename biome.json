@@ -6,7 +6,6 @@
   "files": {
     "ignoreUnknown": false,
     "includes": [
-      "**",
       "!**/.next",
       "!**/dist",
       "!**/.turbo",
@@ -22,8 +21,7 @@
       "!**/.alchemy",
       "!**/.svelte-kit",
       "!**/wrangler.jsonc",
-      "!**/.source",
-      "!**/packages/irc-framework"
+      "!**/.source"
     ]
   },
   "extends": ["ultracite/core", "ultracite/solid"],
@@ -36,8 +34,7 @@
         "useConsistentTypeDefinitions": "off",
         "useBlockStatements": "off",
         "noNestedTernary": "off"
-      },
-      "nursery": "off"
+      }
     }
   },
   "overrides": [
@@ -45,9 +42,6 @@
       "includes": ["apps/web/**"],
       "linter": {
         "rules": {
-          "complexity": {
-            "noUselessUndefinedInitialization": "off"
-          },
           "suspicious": {
             "noAssignInExpressions": "off"
           }
