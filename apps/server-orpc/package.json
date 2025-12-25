@@ -9,7 +9,7 @@
     "./events": "./src/events.ts"
   },
   "scripts": {
-    "check-types": "tsc -b",
+    "check-types": "tsc --noEmit",
     "dev": "bun run src/index.ts"
   },
   "dependencies": {

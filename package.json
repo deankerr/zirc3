@@ -15,13 +15,13 @@
     }
   },
   "scripts": {
+    "prepare": "git config core.hooksPath .githooks",
     "check": "biome check --write .",
     "dev": "turbo dev",
     "build": "turbo build",
     "check-types": "turbo check-types",
     "dev:web": "turbo -F @zirc3/web dev",
     "dev:server": "turbo -F @zirc3/server-orpc dev",
-    "server": "bun run --cwd apps/server-orpc src/serve.ts",
     "cli": "bun run --cwd apps/cli"
   },
   "dependencies": {

@@ -1,6 +1,9 @@
 {
   "name": "@zirc3/irc-client",
   "type": "module",
+  "scripts": {
+    "check-types": "tsc --noEmit"
+  },
   "exports": {
     ".": {
       "default": "./src/index.ts"

@@ -26,7 +26,10 @@
       "Bash(echo:*)",
       "Bash(ls:*)",
       "WebFetch(domain:kobalte.dev)",
-      "mcp__exa__get_code_context_exa"
+      "mcp__exa__get_code_context_exa",
+      "Bash(chmod:*)",
+      "WebFetch(domain:www.ultracite.ai)",
+      "Bash(turbo check:*)"
     ]
   }
 }
