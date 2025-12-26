@@ -250,14 +250,10 @@ export function getClient(network: string) {
 }
 
 // * Graceful shutdown
-export async function shutdown() {
-  const promises: Promise<void>[] = [];
-
+export function shutdown() {
   for (const stored of networks.values()) {
     stored.client.quit();
-    promises.push(stored.client.logger.close());
+    stored.client.logger.close();
   }
-
-  await Promise.all(promises);
   networks.clear();
 }

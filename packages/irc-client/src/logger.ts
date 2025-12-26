@@ -1,23 +1,21 @@
-import { mkdirSync } from "node:fs";
+import { createWriteStream, mkdirSync, type WriteStream } from "node:fs";
 import type IRC from "irc-framework";
 import { formatMessage } from "./format";
 import type { IRCMessage, LoggerOptions } from "./types";
 
-type Writer = ReturnType<typeof Bun.file.prototype.writer>;
-
 type Destination = {
   filePath: string;
-  writer?: Writer;
+  stream?: WriteStream;
 };
 
 const DIR_REGEX = /\/[^/]+$/;
 
-function getWriter(dest: Destination): Writer {
-  if (!dest.writer) {
+function getStream(dest: Destination): WriteStream {
+  if (!dest.stream) {
     mkdirSync(dest.filePath.replace(DIR_REGEX, ""), { recursive: true });
-    dest.writer = Bun.file(dest.filePath).writer();
+    dest.stream = createWriteStream(dest.filePath, { flags: "a" });
   }
-  return dest.writer;
+  return dest.stream;
 }
 
 export class IRCLogger {
@@ -71,7 +69,7 @@ export class IRCLogger {
     }
 
     if (this.console) console.log(line);
-    getWriter(dest).write(`${line}\n`);
+    getStream(dest).write(`${line}\n`);
   }
 
   private logServer(line: string) {
@@ -81,7 +79,7 @@ export class IRCLogger {
     }
 
     if (this.console) console.log(line);
-    getWriter(this.server).write(`${line}\n`);
+    getStream(this.server).write(`${line}\n`);
   }
 
   private logRaw(rawLine: string) {
@@ -90,16 +88,14 @@ export class IRCLogger {
       this.raw = { filePath: `${this.dir}/${hostname}/raw.log` };
     }
 
-    getWriter(this.raw).write(`${rawLine}\n`);
+    getStream(this.raw).write(`${rawLine}\n`);
   }
 
-  async close() {
-    const promises: Promise<unknown>[] = [];
+  close() {
     for (const dest of this.targets.values()) {
-      if (dest.writer) promises.push(dest.writer.end());
+      dest.stream?.end();
     }
-    if (this.server?.writer) promises.push(this.server.writer.end());
-    if (this.raw?.writer) promises.push(this.raw.writer.end());
-    await Promise.all(promises);
+    this.server?.stream?.end();
+    this.raw?.stream?.end();
   }
 }

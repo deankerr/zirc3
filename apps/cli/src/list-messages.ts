@@ -20,10 +20,7 @@ console.log(`  Oldest ID: ${result.oldestId ?? "(none)"}`);
 console.log("");
 
 for (const msg of result.messages) {
-  const time = msg.timestamp.toLocaleTimeString();
-  console.log(
-    `[${time}] <${msg.source}> ${msg.command}: ${msg.params.join(" ")}`
-  );
+  console.log(msg);
 }
 
 if (result.messages.length === 0) {
