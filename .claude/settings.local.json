@@ -29,7 +29,8 @@
       "mcp__exa__get_code_context_exa",
       "Bash(chmod:*)",
       "WebFetch(domain:www.ultracite.ai)",
-      "Bash(turbo check:*)"
+      "Bash(turbo check:*)",
+      "mcp__chrome-devtools__list_pages"
     ]
   }
 }

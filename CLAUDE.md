@@ -13,6 +13,8 @@ This is essentially a next-generation version of The Lounge IRC - a IRC bouncer 
 ## Scripts
 
 - `bun check-types`: This is a fullstack app, you can't partially typecheck the individual workspaces, as you may have caused issues downstream.
+- `bun dev:server`
+- `bun dev:web`
 
 ## Coding
 

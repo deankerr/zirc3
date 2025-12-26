@@ -32,6 +32,8 @@ function commandToLineType(command: string): LineType {
       return "mode";
     case "TOPIC":
       return "topic";
+    case "ERROR":
+      return "error";
     default:
       return "info";
   }
