@@ -4,10 +4,11 @@ let db: DatabaseConnection | null = null;
 let close: (() => void) | null = null;
 
 export function initDb() {
-  const result = createDatabase("./data/zirc.db");
+  const dbPath = process.env.DB_PATH ?? "./data/zirc.db";
+  const result = createDatabase(dbPath);
   db = result.db;
   close = result.close;
-  console.log("[db] initialized at ./data/zirc.db");
+  console.log(`[db] initialized at ${dbPath}`);
 }
 
 export function closeDb() {

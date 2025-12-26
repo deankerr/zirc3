@@ -1,0 +1,40 @@
+# Dependencies (reinstalled in container)
+node_modules
+
+# Build outputs (rebuilt in container)
+dist
+build
+*.tsbuildinfo
+
+# Git
+.git
+.gitignore
+.githooks
+
+# Environment (use docker-compose env instead)
+.env
+.env*.local
+
+# IDEs and editors
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs and data (mounted as volumes)
+logs
+*.log
+data
+
+# Turbo cache
+.turbo
+
+# Testing
+coverage
+.nyc_output
+
+# Documentation and config
+*.md
+.claude

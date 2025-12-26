@@ -1,0 +1,37 @@
+FROM oven/bun:1-alpine
+
+WORKDIR /app
+
+# Copy workspace configuration
+COPY package.json bun.lock turbo.json ./
+
+# Copy package manifests for dependency resolution
+COPY packages/config/package.json packages/config/
+COPY packages/db/package.json packages/db/
+COPY packages/irc-client/package.json packages/irc-client/
+COPY apps/server-orpc/package.json apps/server-orpc/
+
+# Install dependencies
+RUN bun install --ignore-scripts
+
+# Copy source code
+COPY packages/ packages/
+COPY apps/server-orpc/ apps/server-orpc/
+
+# Create data directory
+RUN mkdir -p /app/data /app/logs
+
+WORKDIR /app/apps/server-orpc
+
+# Default environment
+ENV SERVER_PORT=3001
+ENV SERVER_HOST=0.0.0.0
+ENV DB_PATH=./data/zirc.db
+
+EXPOSE 3001
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:3001/health || exit 1
+
+CMD ["bun", "run", "src/index.ts"]

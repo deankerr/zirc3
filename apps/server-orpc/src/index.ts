@@ -13,15 +13,26 @@ export const router = {
   ...eventsRouter,
 };
 
+// * CORS configuration
+const corsOrigins = process.env.CORS_ORIGINS;
+const corsPlugin = corsOrigins
+  ? new CORSPlugin({ origin: corsOrigins.split(",").map((o) => o.trim()) })
+  : new CORSPlugin(); // defaults to allow all
+
 const handler = new RPCHandler(router, {
-  plugins: [new CORSPlugin()],
+  plugins: [corsPlugin],
 });
 
 initDb();
 loadNetworks();
 
+// * Server configuration
+const SERVER_PORT = Number(process.env.SERVER_PORT) || 3001;
+const SERVER_HOST = process.env.SERVER_HOST ?? "0.0.0.0";
+
 const server = Bun.serve({
-  port: 3001,
+  port: SERVER_PORT,
+  hostname: SERVER_HOST,
   async fetch(request: Request) {
     // Health check
     const url = new URL(request.url);
@@ -41,7 +52,7 @@ const server = Bun.serve({
   },
 });
 
-console.log(`server-orpc listening on http://localhost:${server.port}`);
+console.log(`[server] listening on http://${server.hostname}:${server.port}`);
 
 const handleSignal = (signal: string) => {
   console.log(`\n${signal} received, shutting down...`);

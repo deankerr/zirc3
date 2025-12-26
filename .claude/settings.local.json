@@ -31,7 +31,10 @@
       "WebFetch(domain:www.ultracite.ai)",
       "Bash(turbo check:*)",
       "mcp__chrome-devtools__list_pages",
-      "Bash(bun check:*)"
+      "Bash(bun check:*)",
+      "Bash(docker build:*)",
+      "Bash(docker compose:*)",
+      "Bash(docker logs:*)"
     ]
   }
 }
