@@ -72,18 +72,26 @@ const networks = {
 
 const MessageContext = z.enum(["channel", "dm", "server"]);
 
+const MessageMeta = z.object({
+  ident: z.string().optional(),
+  hostname: z.string().optional(),
+  context: MessageContext.optional(),
+  modes: z.array(z.string()).optional(),
+  params: z.array(z.string()).optional(),
+  tags: z.record(z.string(), z.string()).optional(),
+  numeric: z.string().optional(),
+});
+
 export const IRCMessage = z.object({
   id: z.string(),
   timestamp: z.date(),
   network: z.string(),
   command: z.string(),
-  params: z.array(z.string()),
-  source: z.string(),
-  tags: z.record(z.string(), z.string()),
-  numeric: z.string().optional(),
   target: z.string().optional(),
-  context: MessageContext.optional(),
+  source: z.string().optional(),
+  content: z.string().optional(),
   self: z.boolean(),
+  meta: MessageMeta.optional(),
 });
 
 const PaginatedMessages = z.object({

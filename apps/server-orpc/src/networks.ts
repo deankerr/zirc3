@@ -1,12 +1,13 @@
-import { IRCClient } from "@zirc3/irc-client";
-import type { z } from "zod";
-import { os } from "./base";
-import type { NetworkConfig, NetworkState } from "./contract";
 import {
   deleteNetworkConfig,
   getAllNetworkConfigs,
   putNetworkConfig,
-} from "./db";
+} from "@zirc3/db";
+import { IRCClient } from "@zirc3/irc-client";
+import type { z } from "zod";
+import { os } from "./base";
+import type { NetworkConfig, NetworkState } from "./contract";
+import { closeDb, getDb } from "./db";
 import { publisher } from "./events";
 import { storeMessage } from "./messages";
 
@@ -119,52 +120,56 @@ function createClient(config: NetworkConfigType): StoredNetwork {
   });
 
   // * Publish state on channel/user changes
+  // Note: We defer publishes with queueMicrotask to ensure IRCChannel's
+  // handlers have run first (they're registered later, when channels are created)
+  const deferPublish = () => queueMicrotask(() => publishState(stored));
+
   client.on("join", (event) => {
     console.log(
       `[networks] ${config.network}: ${event.nick} joined ${event.channel}`
     );
-    publishState(stored);
+    deferPublish();
   });
   client.on("part", (event) => {
     console.log(
       `[networks] ${config.network}: ${event.nick} parted ${event.channel}`
     );
-    publishState(stored);
+    deferPublish();
   });
   client.on("kick", (event) => {
     console.log(
       `[networks] ${config.network}: ${event.kicked} kicked from ${event.channel} by ${event.nick}`
     );
-    publishState(stored);
+    deferPublish();
   });
   client.on("quit", (event) => {
     console.log(`[networks] ${config.network}: ${event.nick} quit`);
-    publishState(stored);
+    deferPublish();
   });
   client.on("nick", (event) => {
     console.log(
       `[networks] ${config.network}: ${event.nick} -> ${event.new_nick}`
     );
-    publishState(stored);
+    deferPublish();
   });
   client.on("topic", (event) => {
     console.log(
       `[networks] ${config.network}: topic for ${event.channel} set to "${event.topic}"`
     );
-    publishState(stored);
+    deferPublish();
   });
   client.on("userlist", (event) => {
     console.log(
       `[networks] ${config.network}: userlist for ${event.channel} (${event.users.length} users)`
     );
-    publishState(stored);
+    deferPublish();
   });
   client.on("mode", (event) => {
     console.log(
       `[networks] ${config.network}: mode ${event.target}`,
       event.modes
     );
-    publishState(stored);
+    deferPublish();
   });
 
   // * Publish and store parsed messages
@@ -179,15 +184,21 @@ function createClient(config: NetworkConfigType): StoredNetwork {
 
 // * Load networks from db on startup
 
-export async function loadNetworks() {
-  const configs = await getAllNetworkConfigs();
+export function loadNetworks() {
+  const db = getDb();
+  if (!db) {
+    console.log("[networks] db not initialized, skipping network load");
+    return;
+  }
+
+  const configs = getAllNetworkConfigs(db);
   console.log(`[networks] loading ${configs.length} networks from db`);
 
   for (const config of configs) {
-    const stored = createClient(config);
+    const stored = createClient(config as NetworkConfigType);
     networks.set(config.network, stored);
 
-    if (config.enabled) {
+    if ((config as NetworkConfigType).enabled) {
       stored.client.connect();
     }
   }
@@ -199,12 +210,17 @@ const list = os.networks.list.handler(() =>
   [...networks.values()].map(getNetworkState)
 );
 
-const put = os.networks.put.handler(async ({ input }) => {
+const put = os.networks.put.handler(({ input }) => {
+  const db = getDb();
+  if (!db) {
+    throw new Error("Database not initialized");
+  }
+
   const { config } = input;
   const name = config.network;
 
   // * persist config to db
-  await putNetworkConfig(config);
+  putNetworkConfig(db, config);
 
   // * disconnect and remove existing client if present
   const existing = networks.get(name);
@@ -224,14 +240,19 @@ const put = os.networks.put.handler(async ({ input }) => {
   return getNetworkState(stored);
 });
 
-const del = os.networks.delete.handler(async ({ input }) => {
+const del = os.networks.delete.handler(({ input }) => {
+  const db = getDb();
+  if (!db) {
+    throw new Error("Database not initialized");
+  }
+
   const stored = networks.get(input.name);
   if (!stored) {
     return { success: false };
   }
 
   // * remove from db
-  await deleteNetworkConfig(input.name);
+  deleteNetworkConfig(db, input.name);
 
   stored.client.quit();
   networks.delete(input.name);
@@ -256,4 +277,5 @@ export function shutdown() {
     stored.client.logger.close();
   }
   networks.clear();
+  closeDb();
 }

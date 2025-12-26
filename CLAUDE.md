@@ -3,7 +3,7 @@
 This is essentially a next-generation version of The Lounge IRC - a IRC bouncer + Bun web server with oRPC, which is accessed via a SolidJS web app and whatever else you would like to hit the endpoints.
 
 - Currently we only handle single user with no auth, while implementing the core functionality.
-- IRC events will eventually be persisted to db. We avoid using irc-framework's opinionated event helpers as they're not suited to this use case.
+- IRC messages are persisted to SQLite. We avoid using irc-framework's opinionated event helpers as they're not suited to this use case.
 - bun's UUIDv7 implementation is monotonic, so we can call it from anywhere.
 
 ## Philosophy
@@ -50,8 +50,7 @@ console.log(`Creating client "${name}" on ${host}:${port}`);
 **Packages:**
 - `packages/irc-client`: Enhanced irc-framework wrapper
 - `packages/config`: Shared TypeScript config
-
-- `packages/db`: Drizzle ORM + libsql (NOT IN USE)
+- `packages/db`: Drizzle ORM + bun:sqlite - messages and network configs
 
 ## Scripts
 

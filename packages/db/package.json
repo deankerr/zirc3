@@ -11,7 +11,6 @@
   },
   "scripts": {
     "check-types": "tsc --noEmit",
-    "db:local": "turso dev --db-file local.db",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:generate": "drizzle-kit generate",
@@ -25,8 +24,6 @@
   },
   "dependencies": {
     "drizzle-orm": "^0.45.0",
-    "@libsql/client": "catalog:",
-    "libsql": "catalog:",
     "dotenv": "catalog:",
     "zod": "catalog:"
   }

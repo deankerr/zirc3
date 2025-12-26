@@ -34,12 +34,13 @@ const main = defineCommand({
         const msg = event.data;
         const target = msg.target ?? "server";
         const prefix = msg.self ? ">" : "<";
+        const text = msg.content ?? msg.meta?.params?.join(" ") ?? "";
         console.log(
           `[${msg.network}:${target}]`,
           formatTimestamp(msg.timestamp),
           msg.command,
           `${prefix}${msg.source}>`,
-          msg.params.join(" ")
+          text
         );
       } else if (event.type === "state") {
         const state = event.data;

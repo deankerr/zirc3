@@ -3,17 +3,25 @@ import type IRC from "irc-framework";
 
 export type MessageContext = "channel" | "dm" | "server";
 
+export type MessageMeta = {
+  ident?: string;
+  hostname?: string;
+  context?: MessageContext;
+  modes?: string[];
+  params?: string[];
+  tags?: Record<string, string>;
+  numeric?: string;
+};
+
 export type IRCMessage = {
   id: string;
   timestamp: Date;
   command: string;
-  params: string[];
-  source: string;
-  tags: Record<string, string>;
-  numeric?: string;
   target?: string;
-  context?: MessageContext;
+  source?: string;
+  content?: string;
   self: boolean;
+  meta?: MessageMeta;
 };
 
 export type LoggerOptions = {

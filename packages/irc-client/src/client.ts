@@ -2,7 +2,12 @@ import IRC from "irc-framework";
 import { IRCChannel } from "./channel";
 import { IRCLogger } from "./logger";
 import { numerics } from "./numerics";
-import type { IRCClientOptions, IRCMessage } from "./types";
+import type {
+  IRCClientOptions,
+  IRCMessage,
+  MessageContext,
+  MessageMeta,
+} from "./types";
 
 // biome-ignore lint/suspicious/noControlCharactersInRegex: CTCP uses 0x01 markers
 const CTCP_ACTION = /^\x01ACTION (.*)\x01$/;
@@ -18,7 +23,9 @@ const TARGET_COMMANDS = new Set([
   "ACTION",
 ]);
 
-type TargetInfo = { target: string; context: "channel" | "dm" | "server" };
+const CONTENT_COMMANDS = new Set(["PRIVMSG", "ACTION", "NOTICE"]);
+
+type TargetInfo = { target: string; context: MessageContext };
 
 function extractTarget(args: {
   rawTarget: string;
@@ -26,7 +33,7 @@ function extractTarget(args: {
   isNumeric: boolean;
   isTargetCommand: boolean;
   isTargetSelf: boolean;
-  source: string;
+  sourceNick: string | null;
 }): TargetInfo | null {
   const {
     rawTarget,
@@ -34,7 +41,7 @@ function extractTarget(args: {
     isNumeric,
     isTargetCommand,
     isTargetSelf,
-    source,
+    sourceNick,
   } = args;
 
   // for numerics, extract channel target if first param is a channel
@@ -48,18 +55,81 @@ function extractTarget(args: {
     return { target: rawTarget, context: "channel" };
   }
 
-  const isFromUser = source.includes("!");
-  if (isTargetSelf && isFromUser) {
+  if (isTargetSelf && sourceNick) {
     // DM: target becomes the sender's nick for grouping/replies
-    return { target: source.slice(0, source.indexOf("!")), context: "dm" };
+    return { target: sourceNick, context: "dm" };
   }
 
   return { target: rawTarget, context: "server" };
 }
 
-function extractSourceNick(source: string): string | null {
+// * Parse source string: "nick!ident@hostname" or just "servername"
+function parseSource(source: string): {
+  nick: string;
+  ident?: string;
+  hostname?: string;
+} {
   const bangIndex = source.indexOf("!");
-  return bangIndex > 0 ? source.slice(0, bangIndex) : null;
+  if (bangIndex === -1) {
+    return { nick: source };
+  }
+
+  const nick = source.slice(0, bangIndex);
+  const rest = source.slice(bangIndex + 1);
+  const atIndex = rest.indexOf("@");
+
+  if (atIndex === -1) {
+    return { nick, ident: rest };
+  }
+
+  return {
+    nick,
+    ident: rest.slice(0, atIndex),
+    hostname: rest.slice(atIndex + 1),
+  };
+}
+
+function lookupSenderModes(
+  client: IRCClient,
+  context: MessageContext | undefined,
+  target: string | undefined,
+  nick: string | undefined
+): string[] | undefined {
+  if (context !== "channel" || !target || !nick) return undefined;
+  const channel = client.channels.get(target.toLowerCase());
+  const member = channel?.users.find((u) => client.caseCompare(u.nick, nick));
+  return member?.modes.length ? member.modes : undefined;
+}
+
+// * Detect and transform CTCP ACTION
+function detectAction(
+  command: string,
+  params: string[]
+): { command: string; params: string[] } {
+  if (command !== "PRIVMSG" || !params[1]) {
+    return { command, params };
+  }
+  const actionMatch = CTCP_ACTION.exec(params[1]);
+  if (!actionMatch?.[1]) {
+    return { command, params };
+  }
+  const newParams = [...params];
+  newParams[1] = actionMatch[1];
+  return { command: "ACTION", params: newParams };
+}
+
+// * Resolve numeric command to human-readable name
+function resolveNumeric(
+  command: string,
+  params: string[],
+  userNick: string
+): { command: string; params: string[]; numeric?: string } {
+  const numericName = numerics[command];
+  if (!numericName) {
+    return { command, params };
+  }
+  const newParams = params[0] === userNick ? params.slice(1) : params;
+  return { command: numericName, params: newParams, numeric: command };
 }
 
 export class IRCClient extends IRC.Client {
@@ -126,59 +196,88 @@ export class IRCClient extends IRC.Client {
   parseMessage(input: IRC.IrcMessage): IRCMessage {
     const raw = input.toJson();
 
-    const msg: IRCMessage = {
-      id: Bun.randomUUIDv7(),
-      timestamp: new Date(),
-      self: false,
-      ...raw,
-    };
+    // * transform command/params through helpers
+    const action = detectAction(raw.command, [...raw.params]);
+    const resolved = resolveNumeric(
+      action.command,
+      action.params,
+      this.user.nick
+    );
+    const { command, numeric } = resolved;
+    const params = [...resolved.params];
 
-    // * detect CTCP ACTION (e.g. /me commands)
-    // format: PRIVMSG #channel :\x01ACTION does something\x01
-    if (msg.command === "PRIVMSG" && msg.params[1]) {
-      const actionMatch = CTCP_ACTION.exec(msg.params[1]);
-      if (actionMatch?.[1]) {
-        msg.command = "ACTION";
-        msg.params[1] = actionMatch[1];
-      }
-    }
-
-    // * map numeric to human-readable name
-    const name = numerics[msg.command];
-    if (name) {
-      msg.numeric = msg.command;
-      msg.command = name;
-
-      // * most numerics have our nick as the first param - strip it
-      if (msg.params[0] === this.user.nick) {
-        msg.params.shift();
-      }
-    }
+    // * parse source into nick + ident/hostname
+    const { nick: sourceNick, ident, hostname } = parseSource(raw.source);
 
     // * check if message is from ourselves
-    const sourceNick = extractSourceNick(msg.source);
-    msg.self = !!sourceNick && this.caseCompare(sourceNick, this.user.nick);
+    const self =
+      !raw.source ||
+      (!!sourceNick && this.caseCompare(sourceNick, this.user.nick));
 
     // * extract target and determine message context
-    const rawTarget = msg.params[0];
-    if (rawTarget) {
-      const targetInfo = extractTarget({
-        rawTarget,
-        isChannel: this.network.isChannelName(rawTarget),
-        isNumeric: !!msg.numeric,
-        isTargetCommand: TARGET_COMMANDS.has(msg.command),
-        isTargetSelf: this.caseCompare(rawTarget, this.user.nick),
-        source: msg.source,
-      });
+    const {
+      target,
+      context,
+      params: remainingParams,
+    } = this.extractTargetInfo(command, params, sourceNick, !!numeric);
 
-      if (targetInfo) {
-        msg.params.shift();
-        msg.target = targetInfo.target;
-        msg.context = targetInfo.context;
-      }
+    // * extract content for message commands
+    const content = CONTENT_COMMANDS.has(command)
+      ? remainingParams[0]
+      : undefined;
+
+    // * capture sender's channel modes at message time
+    const modes = lookupSenderModes(this, context, target, sourceNick);
+
+    // * build meta object
+    const meta: MessageMeta = { params: remainingParams, tags: raw.tags };
+    if (ident) meta.ident = ident;
+    if (hostname) meta.hostname = hostname;
+    if (context) meta.context = context;
+    if (modes) meta.modes = modes;
+    if (numeric) meta.numeric = numeric;
+
+    return {
+      id: Bun.randomUUIDv7(),
+      timestamp: new Date(),
+      command,
+      target,
+      source: sourceNick || undefined,
+      content,
+      self,
+      meta,
+    };
+  }
+
+  private extractTargetInfo(
+    command: string,
+    params: string[],
+    sourceNick: string | undefined,
+    isNumeric: boolean
+  ): { target?: string; context?: MessageContext; params: string[] } {
+    const rawTarget = params[0];
+    if (!rawTarget) {
+      return { params };
     }
 
-    return msg;
+    const targetInfo = extractTarget({
+      rawTarget,
+      isChannel: this.network.isChannelName(rawTarget),
+      isNumeric,
+      isTargetCommand: TARGET_COMMANDS.has(command),
+      isTargetSelf: this.caseCompare(rawTarget, this.user.nick),
+      sourceNick: sourceNick || null,
+    });
+
+    if (!targetInfo) {
+      return { params };
+    }
+
+    return {
+      target: targetInfo.target,
+      context: targetInfo.context,
+      params: params.slice(1),
+    };
   }
 
   connect(options?: Partial<IRCClientOptions>) {
@@ -194,16 +293,27 @@ export class IRCClient extends IRC.Client {
   // * Emit synthetic outgoing message (for servers without echo-message)
   private emitOutgoing(command: string, target: string, text: string) {
     const isChannel = this.network.isChannelName(target);
+    const context: MessageContext = isChannel ? "channel" : "dm";
+    const modes = lookupSenderModes(this, context, target, this.user.nick);
+
+    const meta: MessageMeta = {
+      params: [text],
+      tags: {},
+      context,
+      ident: this.user.username,
+      hostname: this.user.host,
+    };
+    if (modes) meta.modes = modes;
+
     const msg: IRCMessage = {
       id: Bun.randomUUIDv7(),
       timestamp: new Date(),
       command,
-      params: [text],
-      source: `${this.user.nick}!${this.user.username}@${this.user.host}`,
-      tags: {},
       target,
-      context: isChannel ? "channel" : "dm",
+      source: this.user.nick,
+      content: text,
       self: true,
+      meta,
     };
     this.emit("parsed_message", msg);
   }

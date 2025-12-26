@@ -13,10 +13,10 @@
     "dev": "bun run src/index.ts"
   },
   "dependencies": {
-    "@jsr/cross__kv": "^0.18.0",
     "@orpc/contract": "catalog:",
     "@orpc/experimental-publisher": "catalog:",
     "@orpc/server": "catalog:",
+    "@zirc3/db": "workspace:*",
     "@zirc3/irc-client": "workspace:*",
     "zod": "catalog:"
   },

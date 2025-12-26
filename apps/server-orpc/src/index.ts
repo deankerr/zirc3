@@ -1,7 +1,7 @@
 import { RPCHandler } from "@orpc/server/fetch";
 import { CORSPlugin } from "@orpc/server/plugins";
 import { commandsRouter } from "./commands";
-import { closeDb, openDb } from "./db";
+import { initDb } from "./db";
 import { eventsRouter } from "./events";
 import { messagesRouter } from "./messages";
 import { loadNetworks, networksRouter, shutdown } from "./networks";
@@ -17,8 +17,8 @@ const handler = new RPCHandler(router, {
   plugins: [new CORSPlugin()],
 });
 
-await openDb();
-await loadNetworks();
+initDb();
+loadNetworks();
 
 const server = Bun.serve({
   port: 3001,
@@ -43,10 +43,9 @@ const server = Bun.serve({
 
 console.log(`server-orpc listening on http://localhost:${server.port}`);
 
-const handleSignal = async (signal: string) => {
+const handleSignal = (signal: string) => {
   console.log(`\n${signal} received, shutting down...`);
-  await shutdown();
-  closeDb();
+  shutdown();
   console.log("Shutdown complete");
   process.exit(0);
 };

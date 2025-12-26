@@ -1,27 +1,50 @@
-import type { z } from "zod";
+import {
+  getMessages as dbGetMessages,
+  insertMessages,
+  type MessageInput,
+} from "@zirc3/db";
 import { os } from "./base";
-import type { IRCMessage } from "./contract";
-import { storeMessage as dbStoreMessage, getMessages } from "./db";
+import { getDb } from "./db";
 
-type IRCMessageType = z.infer<typeof IRCMessage>;
-
-// * Store a message (delegates to db)
-
-export function storeMessage(message: IRCMessageType) {
-  // * Fire and forget - don't block on db write
-  dbStoreMessage(message);
+// * Store a message
+export function storeMessage(message: MessageInput) {
+  const db = getDb();
+  if (!db) return;
+  insertMessages(db, message);
 }
 
 // * oRPC handler
+const list = os.messages.list.handler(({ input }) => {
+  const db = getDb();
+  if (!db) {
+    return { messages: [], hasMore: false };
+  }
 
-const list = os.messages.list.handler(async ({ input }) => {
-  console.log("[messages.list]", input);
-  return await getMessages({
+  const rows = dbGetMessages(db, {
     network: input.network,
     target: input.target,
     before: input.before,
-    limit: input.limit,
+    limit: input.limit + 1,
   });
+
+  const hasMore = rows.length > input.limit;
+  const messages = rows.slice(0, input.limit).reverse();
+
+  return {
+    messages: messages.map((row) => ({
+      id: row.id,
+      timestamp: new Date(row.timestamp),
+      network: row.network,
+      command: row.command,
+      self: row.self,
+      target: row.target ?? undefined,
+      source: row.source ?? undefined,
+      content: row.content ?? undefined,
+      meta: row.meta ?? undefined,
+    })),
+    hasMore,
+    oldestId: messages[0]?.id,
+  };
 });
 
 export const messagesRouter = { list };

@@ -39,3 +39,15 @@ export type MessageInput = Omit<typeof messages.$inferInsert, "timestamp"> & {
 
 // * Stored type
 export type Message = typeof messages.$inferSelect;
+
+// * Network configs table - stores network connection configs as JSON
+export const networkConfigs = sqliteTable("network_configs", {
+  name: text("name").primaryKey(),
+  config: text("config", { mode: "json" }).notNull().$type<NetworkConfig>(),
+});
+
+// * Network config type - must have 'network' field for the name
+export type NetworkConfig = {
+  network: string;
+  [key: string]: unknown;
+};

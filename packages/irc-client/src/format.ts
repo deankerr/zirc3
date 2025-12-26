@@ -2,51 +2,52 @@ import type { IRCMessage } from "./types";
 
 export function formatMessage(msg: IRCMessage): string | null {
   const time = formatTime(msg.timestamp);
+  const params = msg.meta?.params ?? [];
 
   switch (msg.command) {
     case "PRIVMSG":
-      return `[${time}] <${msg.source}> ${msg.params[0] ?? ""}`;
+      return `[${time}] <${msg.source}> ${msg.content ?? ""}`;
 
     case "ACTION":
-      return `[${time}] * ${msg.source} ${msg.params[0] ?? ""}`;
+      return `[${time}] * ${msg.source} ${msg.content ?? ""}`;
 
     case "JOIN":
       return `[${time}] --> ${msg.source} has joined ${msg.target}`;
 
     case "PART": {
-      const reason = msg.params[0] ? ` (${msg.params[0]})` : "";
+      const reason = params[0] ? ` (${params[0]})` : "";
       return `[${time}] <-- ${msg.source} has left ${msg.target}${reason}`;
     }
 
     case "QUIT": {
-      const reason = msg.params[0] ? ` (${msg.params[0]})` : "";
+      const reason = params[0] ? ` (${params[0]})` : "";
       return `[${time}] <-- ${msg.source} has quit${reason}`;
     }
 
     case "KICK": {
-      const kicked = msg.params[0];
-      const reason = msg.params[1] ? ` (${msg.params[1]})` : "";
+      const kicked = params[0];
+      const reason = params[1] ? ` (${params[1]})` : "";
       return `[${time}] <-- ${kicked} was kicked from ${msg.target} by ${msg.source}${reason}`;
     }
 
     case "NICK": {
-      const newNick = msg.params[0];
+      const newNick = params[0];
       return `[${time}] --- ${msg.source} is now known as ${newNick}`;
     }
 
     case "RPL_TOPIC":
     case "TOPIC": {
-      const topic = msg.params[0] ?? "";
+      const topic = params[0] ?? "";
       return `[${time}] --- Topic for ${msg.target}: ${topic}`;
     }
 
     case "MODE": {
-      const modes = msg.params.join(" ");
+      const modes = params.join(" ");
       return `[${time}] --- Mode ${msg.target} [${modes}] by ${msg.source}`;
     }
 
     case "NOTICE":
-      return `[${time}] -${msg.source}- ${msg.params[0] ?? ""}`;
+      return `[${time}] -${msg.source}- ${msg.content ?? ""}`;
 
     default:
       return null;

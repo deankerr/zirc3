@@ -4,12 +4,6 @@ import type { BufferLine, LineType } from "@/store/types";
 // Local type with timestamp as number (for store/lines)
 type IRCMessage = Omit<IRCMessageType, "timestamp"> & { timestamp: number };
 
-function parseNick(source?: string): string | undefined {
-  if (!source) return;
-  const bangIndex = source.indexOf("!");
-  return bangIndex > 0 ? source.slice(0, bangIndex) : source;
-}
-
 function commandToLineType(command: string): LineType {
   switch (command) {
     case "PRIVMSG":
@@ -41,32 +35,31 @@ function commandToLineType(command: string): LineType {
 
 function formatMessageContent(msg: IRCMessage): string {
   const type = commandToLineType(msg.command);
+  const params = msg.meta?.params ?? [];
+
+  // * Use content directly for message types that have it
+  if (msg.content !== undefined) {
+    return msg.content;
+  }
 
   switch (type) {
-    case "message":
-    case "notice":
-      return msg.params.join(" ");
-
-    case "action":
-      return msg.params.join(" ");
-
     case "join":
       return `has joined ${msg.target}`;
 
     case "part": {
-      const reason = msg.params.join(" ");
+      const reason = params.join(" ");
       return reason
         ? `has left ${msg.target} (${reason})`
         : `has left ${msg.target}`;
     }
 
     case "quit": {
-      const reason = msg.params.join(" ");
+      const reason = params.join(" ");
       return reason ? `has quit (${reason})` : "has quit";
     }
 
     case "kick": {
-      const [kicked, ...reasonParts] = msg.params;
+      const [kicked, ...reasonParts] = params;
       const reason = reasonParts.join(" ");
       return reason
         ? `has kicked ${kicked} from ${msg.target} (${reason})`
@@ -74,30 +67,29 @@ function formatMessageContent(msg: IRCMessage): string {
     }
 
     case "nick": {
-      const newNick = msg.params[0];
+      const newNick = params[0];
       return `is now known as ${newNick}`;
     }
 
     case "mode": {
-      const modeString = msg.params.join(" ");
+      const modeString = params.join(" ");
       return `sets mode ${modeString}`;
     }
 
     case "topic": {
-      const topic = msg.params.join(" ");
+      const topic = params.join(" ");
       return topic
         ? `has changed the topic to: ${topic}`
         : "has cleared the topic";
     }
 
     default:
-      return msg.params.join(" ");
+      return params.join(" ");
   }
 }
 
 export function ircMessageToLine(msg: IRCMessage): BufferLine {
   const type = commandToLineType(msg.command);
-  const nick = parseNick(msg.source);
 
   // * For action, show nick in content style
   const sourceStyle: LineType | undefined =
@@ -107,7 +99,7 @@ export function ircMessageToLine(msg: IRCMessage): BufferLine {
     id: msg.id,
     timestamp: msg.timestamp,
     type,
-    source: nick ?? msg.source,
+    source: msg.source,
     sourceStyle,
     content: formatMessageContent(msg),
   };
