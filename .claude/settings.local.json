@@ -34,7 +34,11 @@
       "Bash(bun check:*)",
       "Bash(docker build:*)",
       "Bash(docker compose:*)",
-      "Bash(docker logs:*)"
+      "Bash(docker logs:*)",
+      "mcp__chrome-devtools__new_page",
+      "Bash(ssh dietpi@dietpi:*)",
+      "Bash(rsync:*)",
+      "Bash(bun:*)"
     ]
   }
 }

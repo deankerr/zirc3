@@ -40,18 +40,28 @@ export function BufferLineComponent(props: { line: BufferLine }) {
     ? getLineColor(line.sourceStyle)
     : "var(--color-text-secondary)";
 
+  // * For system/info lines, show command name instead of source
+  const showCommand =
+    line.command && (line.type === "system" || line.type === "info");
+
   return (
     <div class="group flex gap-2 whitespace-pre-wrap px-3 py-0.5 text-sm hover:bg-[var(--color-bg-hover)]">
       <span class="shrink-0 text-[var(--color-text-muted)]">
         {formatTime(line.timestamp)}
       </span>
-      {!!line.source && (
-        <span
-          class="w-20 shrink-0 truncate text-right"
-          style={{ color: sourceColor }}
-        >
-          {line.source}
+      {showCommand ? (
+        <span class="w-24 shrink-0 truncate text-right text-[var(--color-text-muted)]">
+          {line.command}
         </span>
+      ) : (
+        !!line.source && (
+          <span
+            class="w-20 shrink-0 truncate text-right"
+            style={{ color: sourceColor }}
+          >
+            {line.source}
+          </span>
+        )
       )}
       <span class="min-w-0 break-words" style={{ color: contentColor }}>
         {renderContent(line.content)}

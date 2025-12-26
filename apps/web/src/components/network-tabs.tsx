@@ -38,6 +38,7 @@ export function NetworkTabs() {
             }}
             class="flex items-center gap-1.5 border-transparent border-b-2 px-3 py-2 text-[var(--color-text-secondary)] text-sm transition-colors hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text-primary)]"
             params={{ network: network.name }}
+            title={network.error}
             to="/$network"
           >
             <span
@@ -45,6 +46,9 @@ export function NetworkTabs() {
               style={{ "background-color": getStatusColor(network.status) }}
             />
             {network.name}
+            {network.error && (
+              <span class="text-[var(--color-error)] text-xs">!</span>
+            )}
           </Link>
         )}
       </For>

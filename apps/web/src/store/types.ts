@@ -19,6 +19,7 @@ export type BufferLine = {
   id: string;
   timestamp: number;
   type: LineType;
+  command?: string;
   source?: string;
   sourceStyle?: LineType;
   content: string;
@@ -45,6 +46,7 @@ export type UserInfo = {
 export type NetworkState = {
   name: string;
   status: "connecting" | "connected" | "disconnected";
+  error?: string;
   user?: UserInfo;
   channels: Record<string, ChannelStateType>;
   config: NetworkConfigType;

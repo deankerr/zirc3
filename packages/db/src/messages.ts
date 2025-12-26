@@ -29,10 +29,13 @@ export function getMessages(
     limit: number;
   }
 ) {
-  const conditions = [
-    eq(messages.network, args.network),
-    sql`lower(${messages.target}) = ${args.target.toLowerCase()}`,
-  ];
+  // Server buffer uses "*" but DB stores null for server messages
+  const targetCondition =
+    args.target === "*"
+      ? sql`${messages.target} IS NULL`
+      : sql`lower(${messages.target}) = ${args.target.toLowerCase()}`;
+
+  const conditions = [eq(messages.network, args.network), targetCondition];
 
   if (args.before) {
     conditions.push(lt(messages.id, args.before));

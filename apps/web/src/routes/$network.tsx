@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/solid-router";
 import { createEffect, createMemo, createSignal } from "solid-js";
 import { Buffer } from "@/components/buffer";
 import { BufferTabs } from "@/components/buffer-tabs";
+import { uuid } from "@/lib/uuid";
 import { useStore } from "@/store";
 import { createActions } from "@/store/actions";
 
@@ -88,7 +89,7 @@ function NetworkView() {
     // * Helper to show command errors in buffer
     const showError = (error: string) => {
       actions.addLine(buffer.id, {
-        id: crypto.randomUUID(),
+        id: uuid(),
         timestamp: Date.now(),
         type: "error",
         source: "client",

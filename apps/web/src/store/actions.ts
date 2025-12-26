@@ -75,6 +75,7 @@ export function createActions(setStore: SetStoreFunction<Store>) {
     syncNetworkState(state: {
       name: string;
       status: "connecting" | "connected" | "disconnected";
+      error?: string;
       user?: UserInfo;
       channels: Record<string, ChannelStateType>;
       config: NetworkConfigType;
@@ -82,6 +83,7 @@ export function createActions(setStore: SetStoreFunction<Store>) {
       setStore("networks", state.name, {
         name: state.name,
         status: state.status,
+        error: state.error,
         user: state.user,
         channels: state.channels,
         config: state.config,
@@ -95,6 +97,7 @@ export function createActions(setStore: SetStoreFunction<Store>) {
         updated[n.network] = {
           name: n.network,
           status: n.status,
+          error: n.error,
           user: n.user,
           channels: n.channels,
           config: n.config,

@@ -108,17 +108,6 @@ function createClient(config: NetworkConfigType): StoredNetwork {
     publishState(stored);
   });
 
-  client.on("socket close", (error) => {
-    console.log(
-      `[networks] ${config.network}: socket closed`,
-      error ? { error } : ""
-    );
-  });
-
-  client.on("irc error", (error) => {
-    console.log(`[networks] ${config.network}: IRC error:`, error);
-  });
-
   // * Publish state on channel/user changes
   // Note: We defer publishes with queueMicrotask to ensure IRCChannel's
   // handlers have run first (they're registered later, when channels are created)

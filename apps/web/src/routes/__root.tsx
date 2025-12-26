@@ -13,6 +13,7 @@ import {
   getMessageBufferId,
   ircMessageToLine,
 } from "@/lib/line-converter";
+import { uuid } from "@/lib/uuid";
 import { StoreProvider, SYSTEM_BUFFER_ID, useStore } from "@/store";
 import { type Actions, createActions } from "@/store/actions";
 
@@ -52,7 +53,7 @@ type BufferTarget = { network: string; target: string; bufferId: string };
 
 function addSystemLine(actions: Actions, content: string) {
   actions.addLine(SYSTEM_BUFFER_ID, {
-    id: crypto.randomUUID(),
+    id: uuid(),
     timestamp: Date.now(),
     type: "system",
     source: "client",
@@ -131,6 +132,7 @@ function handleStateMessage(actions: Actions, state: NetworkStateType) {
   actions.syncNetworkState({
     name: state.network,
     status: state.status,
+    error: state.error,
     user: state.user,
     channels: state.channels,
     config: state.config,
@@ -149,7 +151,7 @@ async function connectToServer(actions: Actions, signal: AbortSignal) {
 
     actions.setConnectionStatus("connected");
     actions.addLine(SYSTEM_BUFFER_ID, {
-      id: crypto.randomUUID(),
+      id: uuid(),
       timestamp: Date.now(),
       type: "system",
       source: "client",
@@ -195,7 +197,7 @@ async function connectToServer(actions: Actions, signal: AbortSignal) {
     console.error("[orpc] error", err);
     actions.setConnectionStatus("disconnected");
     actions.addLine(SYSTEM_BUFFER_ID, {
-      id: crypto.randomUUID(),
+      id: uuid(),
       timestamp: Date.now(),
       type: "error",
       source: "client",

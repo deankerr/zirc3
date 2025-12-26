@@ -170,22 +170,60 @@ export class IRCClient extends IRC.Client {
       this.emit("parsed_message", this.parseMessage(rawMessage));
     });
 
-    // * connection error logging
-    this.on("socket close", (err: unknown) => {
-      if (err instanceof Error) {
-        console.error(`[irc] socket closed with error: ${err.message}`);
-      }
+    // * connection lifecycle events → synthetic messages
+    this.on("connecting", () => {
+      const host = this.options.host ?? "unknown";
+      const port = this.options.port ?? 6667;
+      this.emitSynthetic("NET_CONNECTING", `${host}:${port}`);
     });
 
+    this.on("registered", () => {
+      this.emitSynthetic("NET_CONNECTED", this.user.nick);
+    });
+
+    this.on("socket close", (err: unknown) => {
+      // * err can be: Error object, false, or undefined
+      let content: string | undefined;
+      if (err instanceof Error) {
+        content = err.message;
+      } else if (err && err !== false) {
+        content = String(err);
+      }
+      console.log("[irc] socket close:", content ?? "(clean)");
+      this.emitSynthetic("NET_CLOSE", content);
+    });
+
+    // * Note: irc-framework's transport does NOT emit socket error events
+    // * (the emit is commented out in transports/net.js). Errors come through
+    // * socket close instead. Keep these handlers in case behavior changes.
+    this.on("socket error", (err: unknown) => {
+      console.error("[irc] socket error:", err);
+      const content = err instanceof Error ? err.message : String(err);
+      this.emitSynthetic("NET_ERROR", content);
+    });
+
+    this.connection.on("error", (err: unknown) => {
+      console.error("[irc] connection error:", err);
+      const content = err instanceof Error ? err.message : String(err);
+      this.emitSynthetic("NET_ERROR", content);
+    });
+
+    // * Note: irc-framework only fires reconnecting AFTER a successful initial
+    // * connection that later drops. It won't retry failed initial connections.
     this.on("reconnecting", (event: unknown) => {
       const e = event as { attempt: number; max_retries: number; wait: number };
       console.log(
         `[irc] reconnecting (attempt ${e.attempt}/${e.max_retries}, wait ${e.wait}ms)`
       );
+      this.emitSynthetic(
+        "NET_RECONNECTING",
+        `attempt ${e.attempt}/${e.max_retries}, waiting ${e.wait}ms`
+      );
     });
 
-    this.on("close", (hadError: unknown) => {
-      console.log(`[irc] connection closed${hadError ? " (with error)" : ""}`);
+    this.on("close", () => {
+      console.log("[irc] connection closed");
+      this.emitSynthetic("NET_DISCONNECTED", undefined);
     });
   }
 
@@ -288,6 +326,21 @@ export class IRCClient extends IRC.Client {
 
   quit(message?: string) {
     super.quit(message ?? this.quitMessage);
+  }
+
+  // * Emit synthetic connection status message
+  private emitSynthetic(command: string, content?: string) {
+    const msg: IRCMessage = {
+      id: Bun.randomUUIDv7(),
+      timestamp: new Date(),
+      command,
+      target: undefined,
+      source: undefined,
+      content,
+      self: false,
+      meta: { context: "server" },
+    };
+    this.emit("parsed_message", msg);
   }
 
   // * Emit synthetic outgoing message (for servers without echo-message)

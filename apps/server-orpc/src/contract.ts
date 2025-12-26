@@ -55,6 +55,7 @@ export const ChannelState = z.object({
 export const NetworkState = z.object({
   network: z.string(),
   status: ConnectionStatus,
+  error: z.string().optional(),
   user: UserState.optional(),
   channels: z.record(z.string(), ChannelState),
   config: NetworkConfig,

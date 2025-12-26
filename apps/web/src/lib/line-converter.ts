@@ -28,6 +28,13 @@ function commandToLineType(command: string): LineType {
       return "topic";
     case "ERROR":
       return "error";
+    case "NET_CONNECTING":
+    case "NET_CONNECTED":
+    case "NET_CLOSE":
+    case "NET_ERROR":
+    case "NET_DISCONNECTED":
+    case "NET_RECONNECTING":
+      return "system";
     default:
       return "info";
   }
@@ -95,10 +102,15 @@ export function ircMessageToLine(msg: IRCMessage): BufferLine {
   const sourceStyle: LineType | undefined =
     type === "action" ? "action" : undefined;
 
+  // * Include command for system/info types to help understand what happened
+  const command =
+    type === "system" || type === "info" ? msg.command : undefined;
+
   return {
     id: msg.id,
     timestamp: msg.timestamp,
     type,
+    command,
     source: msg.source,
     sourceStyle,
     content: formatMessageContent(msg),
